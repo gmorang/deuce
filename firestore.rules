@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Multi-ranking model for a trusted group of friends.
+//
+// - users/{uid}: canonical profile, self-writable EXCEPT the `role` field.
+//   role 'admin' can create/manage rankings. A user cannot promote themselves;
+//   only an existing admin (or the console) can change someone's role. Bootstrap
+//   the first admin by editing the field in the Firebase console.
+// - rankings/{id}: only admins create; open list, readable by any signed-in user.
+// - rankings/{id}/members/{uid}: each user joins by creating their OWN member doc
+//   with clean starting stats. Rating changes happen client-side when a match is
+//   recorded, so updates stay open to signed-in users for now (a Cloud Function
+//   would be needed to make ratings fully tamper-proof).
+// - rankings/{id}/matches: append-only history.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Configured starting rating for a ranking, tolerant of missing settings.
+    function rankingStartRating(rankingId) {
+      return get(/databases/$(database)/documents/rankings/$(rankingId)).data.get('settings', {}).get('startRating', 1200);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      // New users may only create their own profile as a 'player'.
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.role == 'player';
+      // Owner may edit their profile but not their own role; admins may change anything.
+      allow update: if signedIn() && (
+        isAdmin()
+        || (request.auth.uid == uid && request.resource.data.role == resource.data.role)
+      );
+      allow delete: if false;
+    }
+
+    match /rankings/{rankingId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+
+      match /members/{uid} {
+        allow read: if signedIn();
+
+        // Join: only your own uid, with untouched starting stats matching the
+        // ranking's configured start rating.
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.rating == rankingStartRating(rankingId)
+          && request.resource.data.wins == 0
+          && request.resource.data.losses == 0
+          && request.resource.data.matchesPlayed == 0;
+
+        // Trust-based rating updates when recording a match; tighten with a
+        // Cloud Function later.
+        allow update: if signedIn();
+        allow delete: if isAdmin() || request.auth.uid == uid;
+      }
+
+      match /matches/{matchId} {
+        allow read: if signedIn();
+        allow create: if signedIn();
+        allow update: if false; // append-only
+        allow delete: if isAdmin(); // admin can fix mistakes / delete a ranking
+      }
+    }
+  }
+}
