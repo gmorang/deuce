@@ -9,6 +9,7 @@ import { RankingLayout } from './pages/RankingLayout'
 import { RankingSettingsPage } from './pages/RankingSettingsPage'
 import { RankingsListPage } from './pages/RankingsListPage'
 import { RecordMatchPage } from './pages/RecordMatchPage'
+import { RoundPage } from './pages/RoundPage'
 
 const queryClient = new QueryClient()
 
@@ -34,6 +35,7 @@ export default function App() {
                 <Route path="r/:rankingId/config" element={<RankingSettingsPage />} />
                 <Route path="r/:rankingId" element={<RankingLayout />}>
                   <Route index element={<LeaderboardPage />} />
+                  <Route path="rodada" element={<RoundPage />} />
                   <Route path="registrar" element={<RecordMatchPage />} />
                 </Route>
               </Route>

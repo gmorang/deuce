@@ -38,6 +38,9 @@ export function RankingLayout() {
         <NavLink to={`/r/${rankingId}`} end className={tabClass}>
           Ranking
         </NavLink>
+        <NavLink to={`/r/${rankingId}/rodada`} className={tabClass}>
+          Rodada
+        </NavLink>
         <NavLink to={`/r/${rankingId}/registrar`} className={tabClass}>
           Registrar
         </NavLink>

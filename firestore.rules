@@ -70,6 +70,25 @@ service cloud.firestore {
         allow update: if false; // append-only
         allow delete: if isAdmin(); // admin can fix mistakes / delete a ranking
       }
+
+      // Weekly draw. Admin opens/draws/closes rounds; players confirm themselves.
+      match /rounds/{roundId} {
+        allow read: if signedIn();
+        allow create, update, delete: if isAdmin();
+
+        match /participants/{uid} {
+          allow read: if signedIn();
+          // Confirm / cancel your own attendance.
+          allow create, delete: if signedIn() && request.auth.uid == uid;
+          allow update: if false;
+        }
+
+        match /fixtures/{fixtureId} {
+          allow read: if signedIn();
+          allow create, delete: if isAdmin(); // written by the draw
+          allow update: if signedIn(); // players record the result
+        }
+      }
     }
   }
 }
