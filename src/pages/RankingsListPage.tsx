@@ -14,57 +14,67 @@ export function RankingsListPage() {
 
   return (
     <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Rankings</h1>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Rankings</h1>
+          <p className="mt-1 text-sm text-fg-muted">Escolha um ranking para ver a classificação.</p>
+        </div>
         {isAdmin && (
-          <Button onClick={() => navigate('/novo')} className="px-3 py-1.5 text-sm">
-            + Novo
+          <Button onClick={() => navigate('/novo')} className="shrink-0">
+            Novo ranking
           </Button>
         )}
       </div>
 
-      {isLoading && <SkeletonList />}
+      {isLoading && <SkeletonGrid />}
       {isError && <EmptyState>Não foi possível carregar os rankings.</EmptyState>}
       {visible && visible.length === 0 && (
-        <EmptyState>{isAdmin ? 'Nenhum ranking ainda. Toque em “+ Novo” para criar o primeiro. 🎾' : 'Nenhum ranking disponível ainda.'}</EmptyState>
+        <EmptyState>{isAdmin ? 'Nenhum ranking ainda. Crie o primeiro em “Novo ranking”. 🎾' : 'Nenhum ranking disponível ainda.'}</EmptyState>
       )}
 
       {visible && visible.length > 0 && (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="grid gap-3 sm:grid-cols-2">
           {visible.map(r => (
-            <li key={r.id}>
-              <Link to={`/r/${r.id}`} className={`flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2 ${r.archived ? 'opacity-60' : ''}`}>
-                <RankingBadge icon={r.icon} color={r.color} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate font-medium">
-                    {r.name}
-                    {r.archived && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">arquivado</span>}
-                  </p>
-                  {r.description && <p className="truncate text-xs text-fg-muted">{r.description}</p>}
-                </div>
-                <span className="text-fg-subtle">›</span>
-              </Link>
-            </li>
+            <Link
+              key={r.id}
+              to={`/r/${r.id}`}
+              className={`group flex items-start gap-3.5 rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow)] transition-all hover:border-border-strong hover:-translate-y-0.5 ${
+                r.archived ? 'opacity-60' : ''
+              }`}
+            >
+              <RankingBadge icon={r.icon} color={r.color} size={44} />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 truncate font-medium">
+                  {r.name}
+                  {r.archived && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">arquivado</span>}
+                </p>
+                {r.description && <p className="mt-0.5 line-clamp-2 text-sm text-fg-muted">{r.description}</p>}
+              </div>
+              <span className="text-fg-subtle transition-transform group-hover:translate-x-0.5">›</span>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   )
 }
 
 function EmptyState({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-fg-muted">{children}</div>
+  return <div className="rounded-2xl border border-dashed border-border px-4 py-12 text-center text-sm text-fg-muted">{children}</div>
 }
 
-function SkeletonList() {
+function SkeletonGrid() {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
-      {[0, 1, 2].map(i => (
-        <li key={i} className="flex items-center gap-3 px-4 py-3.5">
-          <span className="size-9 animate-pulse rounded-lg bg-surface-2" />
-          <span className="h-4 flex-1 animate-pulse rounded bg-surface-2" style={{ maxWidth: 160 }} />
-        </li>
+    <div className="grid gap-3 sm:grid-cols-2">
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className="flex items-start gap-3.5 rounded-2xl border border-border bg-surface p-4">
+          <span className="size-11 animate-pulse rounded-lg bg-surface-2" />
+          <div className="flex-1 space-y-2 py-1">
+            <span className="block h-4 w-2/3 animate-pulse rounded bg-surface-2" />
+            <span className="block h-3 w-1/2 animate-pulse rounded bg-surface-2" />
+          </div>
+        </div>
       ))}
-    </ul>
+    </div>
   )
 }
