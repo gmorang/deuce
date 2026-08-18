@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type Transaction, collection, doc, getDocs, limit, orderBy, query, runTransaction } from 'firebase/firestore'
+import { type Transaction, collection, doc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { DEFAULT_K, updateRatings } from '../elo/elo'
 import type { Member, Ranking } from '../rankings/types'
@@ -16,6 +16,23 @@ export function useRecentMatches(rankingId: string | undefined, max = 20) {
       if (!rankingId) return []
       const snap = await getDocs(query(matchesRef(rankingId), orderBy('playedAt', 'desc'), limit(max)))
       return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
+    },
+  })
+}
+
+/**
+ * Every match a player took part in, oldest first. Two equality queries (as
+ * winner / as loser) merged — Firestore has no OR — sorted client-side.
+ */
+export function usePlayerMatches(rankingId: string | undefined, playerId: string | undefined) {
+  return useQuery({
+    queryKey: ['player-matches', rankingId, playerId],
+    enabled: !!rankingId && !!playerId,
+    queryFn: async (): Promise<Match[]> => {
+      if (!rankingId || !playerId) return []
+      const ref = matchesRef(rankingId)
+      const [won, lost] = await Promise.all([getDocs(query(ref, where('winnerId', '==', playerId))), getDocs(query(ref, where('loserId', '==', playerId)))])
+      return [...won.docs, ...lost.docs].map(d => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) })).sort((a, b) => a.playedAt - b.playedAt)
     },
   })
 }

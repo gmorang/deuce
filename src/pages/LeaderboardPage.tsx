@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Avatar } from '../components/Avatar'
 import { Badge } from '../components/Badge'
@@ -55,6 +55,7 @@ export function LeaderboardPage() {
             {members.map((m, i) => (
               <Row
                 key={m.id}
+                rankingId={rankingId}
                 member={m}
                 isMe={m.id === user?.uid}
                 provisionalMatches={provisionalMatches}
@@ -73,38 +74,44 @@ export function LeaderboardPage() {
 }
 
 function Row({
+  rankingId,
   member: m,
   isMe,
   provisionalMatches,
   fill,
   delay,
-}: { member: RankedMember; isMe: boolean; provisionalMatches: number; fill: number; delay: number }) {
+}: { rankingId: string | undefined; member: RankedMember; isMe: boolean; provisionalMatches: number; fill: number; delay: number }) {
   const provisional = m.matchesPlayed < provisionalMatches
   return (
-    <li
-      className={`rise flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/50 ${isMe ? 'bg-accent/[0.06]' : ''}`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <MedalRank rank={m.rank} size={24} />
-      <Avatar name={m.displayName} size={40} />
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 truncate font-medium">
-          {m.displayName}
-          {isMe && <Badge tone="accent">você</Badge>}
-        </p>
-        <p className="flex items-center gap-1.5 text-xs text-fg-muted">
-          {m.wins}V · {m.losses}D{provisional && <Badge tone="neutral">provisório</Badge>}
-        </p>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="hidden sm:block">
-          <RatingBar fill={fill} leader={m.rank === 1} width={64} />
+    <li className="rise" style={{ animationDelay: `${delay}ms` }}>
+      <Link
+        to={`/r/${rankingId}/j/${m.id}`}
+        className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/50 ${isMe ? 'bg-accent/[0.06]' : ''}`}
+      >
+        <MedalRank rank={m.rank} size={24} />
+        <Avatar name={m.displayName} size={40} />
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-1.5 truncate font-medium">
+            {m.displayName}
+            {isMe && <Badge tone="accent">você</Badge>}
+          </p>
+          <p className="flex items-center gap-1.5 text-xs text-fg-muted">
+            {m.wins}V · {m.losses}D{provisional && <Badge tone="neutral">provisório</Badge>}
+          </p>
         </div>
-        <div className="w-12 text-right">
-          <p className={`tabular font-semibold ${m.rank === 1 ? 'text-accent' : ''}`}>{m.rating}</p>
-          <p className="text-[10px] font-medium uppercase tracking-[0.02em] text-fg-subtle">pts</p>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <RatingBar fill={fill} leader={m.rank === 1} width={64} />
+          </div>
+          <div className="w-12 text-right">
+            <p className={`tabular font-semibold ${m.rank === 1 ? 'text-accent' : ''}`}>{m.rating}</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.02em] text-fg-subtle">pts</p>
+          </div>
+          <span aria-hidden className="text-fg-subtle">
+            ›
+          </span>
         </div>
-      </div>
+      </Link>
     </li>
   )
 }

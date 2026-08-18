@@ -7,6 +7,7 @@ import { JoinPage } from './pages/JoinPage'
 import { LandingPage } from './pages/LandingPage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { PlayerProfilePage } from './pages/PlayerProfilePage'
 import { RankingLayout } from './pages/RankingLayout'
 import { RankingSettingsPage } from './pages/RankingSettingsPage'
 import { RankingsListPage } from './pages/RankingsListPage'
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/rankings" element={<RankingsListPage />} />
                 <Route path="/novo" element={<CreateRankingPage />} />
                 <Route path="/r/:rankingId/config" element={<RankingSettingsPage />} />
+                <Route path="/r/:rankingId/j/:playerId" element={<PlayerProfilePage />} />
                 <Route path="/r/:rankingId" element={<RankingLayout />}>
                   <Route index element={<LeaderboardPage />} />
                   <Route path="rodada" element={<RoundPage />} />
