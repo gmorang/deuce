@@ -8,15 +8,15 @@ export function InviteButton({ code, name }: { code: string; name: string }) {
   const [copied, setCopied] = useState(false)
 
   const onClick = async () => {
-    const url = window.location.origin
-    const text = `Entre no ranking "${name}" no Deuce com o código ${code}`
+    const url = `${window.location.origin}/entrar/${code}`
+    const text = `Entre no ranking "${name}" no Deuce`
 
     if (navigator.share) {
       await navigator.share({ title: 'Deuce', text, url }).catch(() => undefined)
       return
     }
     const ok = await navigator.clipboard
-      .writeText(`${text} — ${url}`)
+      .writeText(`${text}: ${url}`)
       .then(() => true)
       .catch(() => false)
     if (ok) {

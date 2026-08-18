@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { AppLayout } from './components/AppLayout'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import { CreateRankingPage } from './pages/CreateRankingPage'
+import { JoinPage } from './pages/JoinPage'
 import { LandingPage } from './pages/LandingPage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LoginPage } from './pages/LoginPage'
@@ -38,6 +39,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<RootRoute />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/entrar/:code" element={<JoinPage />} />
             <Route element={<ProtectedGate />}>
               <Route element={<AppLayout />}>
                 <Route path="/rankings" element={<RankingsListPage />} />
