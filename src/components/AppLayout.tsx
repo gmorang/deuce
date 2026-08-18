@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { Badge } from './Badge'
@@ -22,6 +22,12 @@ const sideNav = ({ isActive }: { isActive: boolean }) =>
 export function AppLayout() {
   const { user, logout } = useAuth()
   const { data: isAdmin } = useIsAdmin()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/', { replace: true })
+  }
 
   const userFooter = (
     <div className="flex items-center gap-2.5">
@@ -36,7 +42,7 @@ export function AppLayout() {
       </div>
       <button
         type="button"
-        onClick={() => logout()}
+        onClick={handleLogout}
         aria-label="Sair"
         className="rounded-md p-1.5 text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg"
       >
@@ -87,7 +93,7 @@ export function AppLayout() {
               )}
               <button
                 type="button"
-                onClick={() => logout()}
+                onClick={handleLogout}
                 aria-label="Sair"
                 className="rounded-md p-1.5 text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg"
               >
