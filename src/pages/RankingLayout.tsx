@@ -15,7 +15,7 @@ export function RankingLayout() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <NavLink to="/" className="text-sm text-fg-muted transition-colors hover:text-fg">
+        <NavLink to="/rankings" className="text-sm text-fg-muted transition-colors hover:text-fg">
           ‹ Rankings
         </NavLink>
         <div className="mt-1 flex items-center gap-3">

@@ -17,7 +17,7 @@ export function RankingSettingsPage() {
 
   if (adminLoading || isLoading) return null
   if (!isAdmin) return <Navigate to={`/r/${rankingId}`} replace />
-  if (!ranking) return <Navigate to="/" replace />
+  if (!ranking) return <Navigate to="/rankings" replace />
 
   return <SettingsForm ranking={ranking} />
 }
@@ -91,7 +91,7 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
   const onDelete = async () => {
     if (!window.confirm(`Excluir "${ranking.name}"? Isso apaga membros e partidas. Não dá pra desfazer.`)) return
     await deleteRanking.mutateAsync(ranking.id)
-    navigate('/')
+    navigate('/rankings')
   }
 
   return (

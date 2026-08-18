@@ -97,6 +97,26 @@
   }
 }
 
+/* Opt-in dark scope — used by the marketing landing, which is dark-first
+   regardless of the visitor's system theme. */
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c21;
+  --fg: #f4f4f5;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #6b6b76;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --accent: #34d399;
+  --accent-fg: #052e1b;
+  --ring: rgba(52, 211, 153, 0.35);
+  --danger: #f87171;
+  --danger-fg: #1a0606;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 /* Map the semantic tokens to Tailwind utilities (bg-surface, text-fg, …). */
 @theme inline {
   --color-bg: var(--bg);

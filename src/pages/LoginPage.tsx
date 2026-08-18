@@ -1,13 +1,16 @@
+import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../features/auth/AuthProvider'
+import { isEmbeddedBrowser } from '../lib/browser'
 
 export function LoginPage() {
   const { user, loading, signIn } = useAuth()
+  const embedded = isEmbeddedBrowser()
 
   if (loading) return null
-  if (user) return <Navigate to="/" replace />
+  if (user) return <Navigate to="/rankings" replace />
 
   return (
     <main className="relative flex min-h-full flex-col items-center justify-center overflow-hidden px-6 text-center">
@@ -25,12 +28,46 @@ export function LoginPage() {
           </div>
         </div>
 
-        <Button onClick={() => signIn()} className="w-full py-3">
-          <GoogleIcon />
-          Entrar com Google
-        </Button>
+        {embedded ? (
+          <OpenInBrowser />
+        ) : (
+          <Button onClick={() => signIn()} className="w-full py-3">
+            <GoogleIcon />
+            Entrar com Google
+          </Button>
+        )}
       </div>
     </main>
+  )
+}
+
+/** Shown inside in-app browsers (WhatsApp, Instagram…) where Google sign-in is blocked. */
+function OpenInBrowser() {
+  const [copied, setCopied] = useState(false)
+  const url = typeof window !== 'undefined' ? window.location.href : ''
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-border bg-surface p-5 text-left shadow-[var(--shadow)]">
+      <p className="text-sm text-fg-muted">
+        O login com Google não funciona dentro do navegador do WhatsApp. Abra o Deuce no seu navegador (Safari ou Chrome) para entrar.
+      </p>
+      <p className="text-xs text-fg-subtle">
+        Toque no menu <span className="font-medium text-fg">•••</span> aqui em cima e escolha <span className="font-medium text-fg">“Abrir no navegador”</span>.
+      </p>
+      <Button variant="outline" onClick={copy} className="w-full">
+        {copied ? 'Link copiado ✓' : 'Copiar link'}
+      </Button>
+    </div>
   )
 }
 

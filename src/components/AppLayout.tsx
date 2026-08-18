@@ -6,7 +6,7 @@ import { Logo } from './Logo'
 
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+    <Link to="/rankings" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
       <Logo size={20} />
       Deuce
     </Link>
@@ -53,7 +53,7 @@ export function AppLayout() {
           <Brand />
         </div>
         <nav className="mt-6 flex flex-col gap-1">
-          <NavLink to="/" end className={sideNav}>
+          <NavLink to="/rankings" end className={sideNav}>
             <TrophyIcon />
             Rankings
           </NavLink>

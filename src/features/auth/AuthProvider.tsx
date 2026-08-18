@@ -1,5 +1,6 @@
-import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth'
+import { type User, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth'
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { isMobile } from '../../lib/browser'
 import { auth, googleProvider } from '../../lib/firebase'
 import { ensureUserProfile } from '../users/useUsers'
 
@@ -17,6 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Complete any pending redirect sign-in (mobile flow) before subscribing.
+    getRedirectResult(auth).catch(() => undefined)
     return onAuthStateChanged(auth, next => {
       setUser(next)
       setLoading(false)
@@ -29,8 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      // Popup is smoothest on desktop; mobile browsers handle the full-page
+      // redirect far more reliably. Popup failures fall back to redirect too.
       signIn: async () => {
-        await signInWithPopup(auth, googleProvider)
+        if (isMobile()) {
+          await signInWithRedirect(auth, googleProvider)
+          return
+        }
+        try {
+          await signInWithPopup(auth, googleProvider)
+        } catch {
+          await signInWithRedirect(auth, googleProvider)
+        }
       },
       logout: () => signOut(auth),
     }),

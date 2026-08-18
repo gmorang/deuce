@@ -48,12 +48,12 @@ export function CreateRankingPage() {
   })
 
   if (adminLoading) return null
-  if (!isAdmin) return <Navigate to="/" replace />
+  if (!isAdmin) return <Navigate to="/rankings" replace />
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <Link to="/" className="text-sm text-fg-muted transition-colors hover:text-fg">
+        <Link to="/rankings" className="text-sm text-fg-muted transition-colors hover:text-fg">
           ‹ Rankings
         </Link>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Novo ranking</h1>
