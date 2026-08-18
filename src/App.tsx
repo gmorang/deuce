@@ -22,11 +22,11 @@ function RootRoute() {
   return <LandingPage />
 }
 
-/** Redirects to /login when there's no authenticated user. */
+/** Sends unauthenticated users to the public home (landing), not a bare login. */
 function ProtectedGate() {
   const { user, loading } = useAuth()
   if (loading) return <div className="flex min-h-full items-center justify-center text-fg-subtle">Carregando…</div>
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/" replace />
   return <Outlet />
 }
 

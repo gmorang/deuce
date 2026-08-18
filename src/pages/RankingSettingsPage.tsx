@@ -7,6 +7,7 @@ import { Button } from '../components/Button'
 import { IdentityPicker } from '../components/IdentityPicker'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
+import { MATCH_FORMATS, type MatchFormat } from '../features/matches/score'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from '../features/rankings/identity'
 import { DEFAULT_RANKING_SETTINGS, type Ranking } from '../features/rankings/types'
 import { useDeleteRanking, useRanking, useRegenerateCode, useSetArchived, useUpdateRanking } from '../features/rankings/useRankings'
@@ -30,6 +31,7 @@ const schema = z.object({
   kFactor: z.coerce.number().int().min(1).max(200),
   provisionalEnabled: z.boolean(),
   provisionalMatches: z.coerce.number().int().min(1).max(50),
+  defaultFormat: z.string(),
 })
 type Form = z.infer<typeof schema>
 
@@ -67,6 +69,7 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
       kFactor: settings.kFactor,
       provisionalEnabled: settings.provisionalEnabled ?? true,
       provisionalMatches: settings.provisionalMatches,
+      defaultFormat: settings.defaultFormat ?? 'best3',
     },
   })
 
@@ -85,6 +88,7 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
         kFactor: values.kFactor,
         provisionalEnabled: values.provisionalEnabled,
         provisionalMatches: values.provisionalMatches,
+        defaultFormat: values.defaultFormat as MatchFormat,
       },
     })
   })
@@ -122,6 +126,21 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
         {/* Identidade */}
         <Section title="Identidade">
           <IdentityPicker icon={icon} color={color} onIcon={setIcon} onColor={setColor} />
+        </Section>
+
+        {/* Partidas */}
+        <Section title="Partidas">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-fg-muted">Formato das partidas</span>
+            <select {...register('defaultFormat')} className={inputClass}>
+              {MATCH_FORMATS.map(f => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-fg-subtle">Usado em todas as partidas deste ranking.</span>
+          </label>
         </Section>
 
         {/* Elo */}

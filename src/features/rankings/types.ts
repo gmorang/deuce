@@ -1,3 +1,8 @@
+import { DEFAULT_MATCH_FORMAT, type MatchFormat } from '../matches/score'
+
+/** Singles for now; doubles is planned. */
+export type RankingType = 'singles' | 'doubles'
+
 export interface RankingSettings {
   /** Rating every new member starts with. */
   startRating: number
@@ -7,6 +12,8 @@ export interface RankingSettings {
   provisionalEnabled: boolean
   /** Matches a member needs before losing the "provisional" tag. */
   provisionalMatches: number
+  /** Default match format pre-selected when recording a result. */
+  defaultFormat: MatchFormat
 }
 
 export interface Ranking {
@@ -23,6 +30,8 @@ export interface Ranking {
   archived: boolean
   /** Short code people type to join this private ranking. */
   inviteCode: string
+  /** Singles or doubles ranking. */
+  type: RankingType
   settings: RankingSettings
 }
 
@@ -31,6 +40,7 @@ export const DEFAULT_RANKING_SETTINGS: RankingSettings = {
   kFactor: 32,
   provisionalEnabled: true,
   provisionalMatches: 3,
+  defaultFormat: DEFAULT_MATCH_FORMAT,
 }
 
 export interface Member {

@@ -32,6 +32,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/inviteCodes/$(code)).data.rankingId == rankingId;
     }
 
+    // Collection-group read for the home ("rankings I'm in"). A collection-group
+    // query is ONLY authorized by a recursive-wildcard rule like this — a nested
+    // rule at rankings/{id}/members doesn't cover it. The field-only condition is
+    // provable from the query's `where('uid','==', me)` filter.
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && request.auth.uid == resource.data.uid;
+    }
+
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == uid && request.resource.data.role == 'player';
@@ -54,8 +62,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
 
       match /members/{uid} {
-        // Members (and admins) see the roster; you can always read your own doc,
-        // and reads of a missing doc are allowed so a joiner can check membership.
+        // Leaderboard (members of this ranking) + your own doc + missing-doc reads.
+        // The collection-group "my rankings" query is authorized by the
+        // recursive-wildcard rule above, not this one.
         allow read: if signedIn() && (isAdmin() || isMember(rankingId) || resource == null || resource.data.uid == request.auth.uid);
 
         // Join: your own uid, clean stats, and either you're admin or you have a

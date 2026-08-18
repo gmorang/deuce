@@ -23,7 +23,7 @@ export function useMembers(rankingId: string | undefined) {
 
 /**
  * Join a ranking you can already see (used by admins on the ranking page). The
- * uid field is stored so the ranking shows up in "my rankings" queries.
+ * `uid` field lets the home find this ranking via a collection-group query.
  */
 export function useJoinRanking() {
   const qc = useQueryClient()
@@ -61,8 +61,8 @@ export function useJoinRanking() {
 
 /**
  * Join a private ranking with an invite code. Looks the code up in the public
- * `inviteCodes` collection, then creates the member doc (validated against the
- * code in the security rules). Returns the ranking id to navigate to.
+ * `inviteCodes` collection, then creates the member doc (with `uid`, validated
+ * against the code in the security rules). Returns the ranking id.
  */
 export function useJoinByCode() {
   const qc = useQueryClient()
@@ -76,10 +76,11 @@ export function useJoinByCode() {
       const inviteSnap = await getDoc(doc(db, 'inviteCodes', code))
       if (!inviteSnap.exists()) throw new Error('Código não encontrado. Confira com quem te convidou.')
       const invite = inviteSnap.data() as { rankingId: string; startRating?: number }
+      const rankingId = invite.rankingId
 
-      const memberRef = doc(db, 'rankings', invite.rankingId, 'members', user.uid)
+      const memberRef = doc(db, 'rankings', rankingId, 'members', user.uid)
       const existing = await getDoc(memberRef)
-      if (existing.exists()) return invite.rankingId
+      if (existing.exists()) return rankingId
 
       await setDoc(memberRef, {
         uid: user.uid,
@@ -92,7 +93,7 @@ export function useJoinByCode() {
         joinedAt: Date.now(),
         viaCode: code,
       })
-      return invite.rankingId
+      return rankingId
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['my-rankings'] }),
   })

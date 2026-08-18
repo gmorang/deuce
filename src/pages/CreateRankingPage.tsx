@@ -7,6 +7,7 @@ import { Button } from '../components/Button'
 import { IdentityPicker } from '../components/IdentityPicker'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
+import { DEFAULT_MATCH_FORMAT, MATCH_FORMATS, type MatchFormat } from '../features/matches/score'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from '../features/rankings/identity'
 import { useCreateRanking } from '../features/rankings/useRankings'
 
@@ -28,6 +29,7 @@ export function CreateRankingPage() {
 
   const [icon, setIcon] = useState(DEFAULT_RANKING_ICON)
   const [color, setColor] = useState(DEFAULT_RANKING_COLOR)
+  const [format, setFormat] = useState<MatchFormat>(DEFAULT_MATCH_FORMAT)
 
   const {
     register,
@@ -43,6 +45,8 @@ export function CreateRankingPage() {
       description: description?.trim() ? description.trim() : null,
       icon,
       color,
+      type: 'singles',
+      format,
     })
     navigate(`/r/${id}`)
   })
@@ -70,6 +74,24 @@ export function CreateRankingPage() {
             <span className="text-sm font-medium text-fg-muted">Descrição (opcional)</span>
             <input {...register('description')} placeholder="Ex: toda sexta, quadra do clube" className={inputClass} autoComplete="off" />
             {errors.description && <span className="text-xs text-danger">{errors.description.message}</span>}
+          </label>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-fg-muted">Tipo</span>
+            <div className="flex gap-1 rounded-xl bg-surface-2 p-1">
+              <span className="flex-1 rounded-lg bg-surface px-3 py-1.5 text-center text-sm font-medium text-fg shadow-sm">Simples</span>
+              <span className="flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium text-fg-subtle">Duplas · em breve</span>
+            </div>
+          </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-fg-muted">Formato das partidas</span>
+            <select value={format} onChange={e => setFormat(e.target.value as MatchFormat)} className={inputClass}>
+              {MATCH_FORMATS.map(f => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-fg-subtle">Todas as partidas deste ranking usam este formato.</span>
           </label>
         </div>
 

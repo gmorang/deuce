@@ -3,7 +3,11 @@ export interface Match {
   winnerId: string
   loserId: string
   /** Free-form scoreline for display, e.g. "6-4 3-6 7-5". Optional. */
-  score?: string
+  score?: string | null
+  /** Match format (see matches/score). */
+  format?: string | null
+  courtName?: string | null
+  notes?: string | null
   winnerRatingBefore: number
   loserRatingBefore: number
   winnerRatingAfter: number
@@ -19,4 +23,9 @@ export interface NewMatchInput {
   winnerId: string
   loserId: string
   score?: string
+  format?: string
+  courtName?: string
+  notes?: string
+  /** When the match was played (ms). Defaults to now. */
+  playedAt?: number
 }

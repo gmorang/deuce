@@ -3,9 +3,10 @@ import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, orderBy, 
 import { db } from '../../lib/firebase'
 import { useAuth } from '../auth/AuthProvider'
 import { useIsAdmin } from '../auth/useIsAdmin'
+import { DEFAULT_MATCH_FORMAT, type MatchFormat } from '../matches/score'
 import { generateInviteCode } from './codes'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from './identity'
-import { DEFAULT_RANKING_SETTINGS, type Ranking, type RankingSettings } from './types'
+import { DEFAULT_RANKING_SETTINGS, type Ranking, type RankingSettings, type RankingType } from './types'
 
 const rankingsRef = collection(db, 'rankings')
 const inviteRef = (code: string) => doc(db, 'inviteCodes', code)
@@ -28,6 +29,8 @@ export function useMyRankings() {
         const snap = await getDocs(query(rankingsRef, orderBy('createdAt', 'desc')))
         return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Ranking, 'id'>) }))
       }
+      // Find every ranking I'm a member of via a collection-group query over the
+      // `members` docs (needs the members.uid collection-group index).
       const memberSnap = await getDocs(query(collectionGroup(db, 'members'), where('uid', '==', uid)))
       const ids = memberSnap.docs.map(d => d.ref.parent.parent?.id).filter((v): v is string => !!v)
       const docs = await Promise.all(ids.map(id => getDoc(doc(db, 'rankings', id))))
@@ -58,13 +61,15 @@ export interface NewRankingInput {
   description?: string | null
   icon?: string
   color?: string
+  type?: RankingType
+  format?: MatchFormat
 }
 
 /** Create a private ranking with an invite code + its public lookup doc. Admin only. */
 export function useCreateRanking() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ name, ownerId, description, icon, color }: NewRankingInput) => {
+    mutationFn: async ({ name, ownerId, description, icon, color, type, format }: NewRankingInput) => {
       const ref = doc(rankingsRef)
       const code = generateInviteCode()
       const batch = writeBatch(db)
@@ -76,7 +81,8 @@ export function useCreateRanking() {
         ownerId,
         archived: false,
         inviteCode: code,
-        settings: DEFAULT_RANKING_SETTINGS,
+        type: type ?? 'singles',
+        settings: { ...DEFAULT_RANKING_SETTINGS, defaultFormat: format ?? DEFAULT_MATCH_FORMAT },
         createdAt: Date.now(),
       })
       batch.set(inviteRef(code), { rankingId: ref.id, startRating: DEFAULT_RANKING_SETTINGS.startRating, createdAt: Date.now(), createdBy: ownerId })

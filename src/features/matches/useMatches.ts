@@ -29,7 +29,7 @@ export function useRecentMatches(rankingId: string | undefined, max = 20) {
 export async function applyMatchInTransaction(
   tx: Transaction,
   rankingId: string,
-  { winnerId, loserId, score, recordedBy }: NewMatchInput & { recordedBy: string },
+  { winnerId, loserId, score, format, courtName, notes, playedAt, recordedBy }: NewMatchInput & { recordedBy: string },
 ): Promise<string> {
   if (winnerId === loserId) throw new Error('Escolha dois jogadores diferentes.')
 
@@ -49,12 +49,15 @@ export async function applyMatchInTransaction(
     winnerId,
     loserId,
     score: score ?? null,
+    format: format ?? null,
+    courtName: courtName ?? null,
+    notes: notes ?? null,
     winnerRatingBefore: winner.rating,
     loserRatingBefore: loser.rating,
     winnerRatingAfter: change.winner,
     loserRatingAfter: change.loser,
     ratingDelta: change.delta,
-    playedAt: Date.now(),
+    playedAt: playedAt ?? Date.now(),
     recordedBy,
   })
   tx.update(winnerRef, { rating: change.winner, wins: winner.wins + 1, matchesPlayed: winner.matchesPlayed + 1 })

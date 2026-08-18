@@ -29,3 +29,6 @@ firebase-debug.log
 *.njsproj
 *.sln
 *.sw?
+
+# Migration service account key (NEVER commit)
+scripts/serviceAccountKey.json
