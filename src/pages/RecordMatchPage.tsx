@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/Button'
+import { Scoreboard } from '../components/Scoreboard'
 import { useAuth } from '../features/auth/AuthProvider'
 import { DEFAULT_MATCH_FORMAT, type SetScore, computeWinner, formatScore, matchFormat } from '../features/matches/score'
 import { useRecordMatch } from '../features/matches/useMatches'
@@ -43,11 +44,6 @@ export function RecordMatchPage() {
   const aName = options.find(m => m.id === aId)?.displayName
   const bName = options.find(m => m.id === bId)?.displayName
   const winner = aId && bId && aId !== bId ? computeWinner(sets, def) : null
-
-  const setGame = (i: number, side: 'a' | 'b', value: string) => {
-    const n = Math.max(0, Math.min(99, Number.parseInt(value, 10) || 0))
-    setSets(prev => prev.map((s, idx) => (idx === i ? { ...s, [side]: n } : s)))
-  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,44 +96,7 @@ export function RecordMatchPage() {
         </Field>
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface p-4">
-        <div className="flex items-center justify-between text-sm font-medium">
-          <span className="min-w-0 flex-1 truncate">{aName ?? 'Jogador A'}</span>
-          <span className="px-2 text-fg-subtle">×</span>
-          <span className="min-w-0 flex-1 truncate text-right">{bName ?? 'Jogador B'}</span>
-        </div>
-        <div className="mt-3 flex flex-col gap-2">
-          {sets.map((s, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length positional set rows
-            <div key={i} className="flex items-center gap-2">
-              <span className="w-9 shrink-0 text-xs font-medium uppercase tracking-wide text-fg-subtle">{def.tiebreak ? 'TB' : `S${i + 1}`}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={s.a || ''}
-                onChange={e => setGame(i, 'a', e.target.value)}
-                className={`${controlClass} text-center`}
-                placeholder="0"
-              />
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={s.b || ''}
-                onChange={e => setGame(i, 'b', e.target.value)}
-                className={`${controlClass} text-center`}
-                placeholder="0"
-              />
-            </div>
-          ))}
-        </div>
-        {winner && (
-          <p className="mt-3 text-center text-sm">
-            Vencedor: <span className="font-semibold text-accent">{winner === 'a' ? aName : bName}</span>
-          </p>
-        )}
-      </div>
+      <Scoreboard nameA={aName ?? 'Jogador A'} nameB={bName ?? 'Jogador B'} sets={sets} def={def} onChange={setSets} />
 
       <Field label="Quadra (opcional)">
         <input value={courtName} onChange={e => setCourtName(e.target.value)} placeholder="Ex: Quadra 1" className={controlClass} autoComplete="off" />

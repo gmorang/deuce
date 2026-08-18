@@ -33,9 +33,16 @@ export function matchFormat(value: string | undefined): MatchFormatDef {
 export interface SetScore {
   a: number
   b: number
+  /** Loser's points in the set tie-break (7-6). Display only; renders as 7-6(5). */
+  tb?: number
 }
 
 const played = (s: SetScore) => s.a !== 0 || s.b !== 0
+
+/** A set that reached a tie-break at 7-6 / 6-7. */
+export function isTiebreakSet(s: SetScore): boolean {
+  return (s.a === 7 && s.b === 6) || (s.a === 6 && s.b === 7)
+}
 
 /** Winner from the set scores: 'a' | 'b' | null when still undecided or tied. */
 export function computeWinner(sets: SetScore[], def: MatchFormatDef): 'a' | 'b' | null {
@@ -51,10 +58,14 @@ export function computeWinner(sets: SetScore[], def: MatchFormatDef): 'a' | 'b' 
   return null
 }
 
-/** Winner-first scoreline, e.g. "6-4 3-6 6-2". */
+/** Winner-first scoreline, e.g. "6-4 3-6 7-6(5)". */
 export function formatScore(sets: SetScore[], winner: 'a' | 'b'): string {
   return sets
     .filter(played)
-    .map(s => (winner === 'a' ? `${s.a}-${s.b}` : `${s.b}-${s.a}`))
+    .map(s => {
+      const [x, y] = winner === 'a' ? [s.a, s.b] : [s.b, s.a]
+      const suffix = s.tb != null && isTiebreakSet(s) ? `(${s.tb})` : ''
+      return `${x}-${y}${suffix}`
+    })
     .join(' ')
 }

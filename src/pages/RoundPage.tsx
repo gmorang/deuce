@@ -3,9 +3,12 @@ import { useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
 import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
+import { Scoreboard } from '../components/Scoreboard'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
+import { type MatchFormatDef, type SetScore, computeWinner, formatScore, matchFormat } from '../features/matches/score'
 import { useMembers } from '../features/rankings/useMembers'
+import { useRanking } from '../features/rankings/useRankings'
 import type { Fixture, Round } from '../features/rounds/types'
 import {
   useCloseRound,
@@ -17,6 +20,8 @@ import {
   useRounds,
   useToggleParticipation,
 } from '../features/rounds/useRounds'
+
+const emptySets = (n: number): SetScore[] => Array.from({ length: n }, () => ({ a: 0, b: 0 }))
 
 export function RoundPage() {
   const { rankingId } = useParams()
@@ -173,13 +178,15 @@ function DrawnPanel({
   myId?: string
 }) {
   const closeRound = useCloseRound(rankingId, round.id)
+  const { data: ranking } = useRanking(rankingId)
+  const def = matchFormat(ranking?.settings?.defaultFormat)
   const closed = round.status === 'closed'
 
   return (
     <div className="flex flex-col gap-5">
       <ul className="flex flex-col gap-3">
         {fixtures.map(f => (
-          <FixtureRow key={f.id} rankingId={rankingId} roundId={round.id} fixture={f} mine={f.aId === myId || f.bId === myId} canRecord={!closed} />
+          <FixtureRow key={f.id} rankingId={rankingId} roundId={round.id} fixture={f} mine={f.aId === myId || f.bId === myId} canRecord={!closed} def={def} />
         ))}
       </ul>
 
@@ -204,25 +211,44 @@ function FixtureRow({
   fixture,
   mine,
   canRecord,
+  def,
 }: {
   rankingId: string
   roundId: string
   fixture: Fixture
   mine: boolean
   canRecord: boolean
+  def: MatchFormatDef
 }) {
   const { user } = useAuth()
   const record = useRecordFixture(rankingId, roundId)
   const [open, setOpen] = useState(false)
-  const [score, setScore] = useState('')
+  const [sets, setSets] = useState<SetScore[]>(() => emptySets(def.maxSets))
   const [error, setError] = useState<string | null>(null)
   const played = fixture.status === 'played'
+  const winner = computeWinner(sets, def)
 
-  const submit = async (winnerId: string, loserId: string) => {
+  const close = () => {
+    setOpen(false)
+    setSets(emptySets(def.maxSets))
     setError(null)
+  }
+
+  const submit = async () => {
+    if (!winner) return
+    setError(null)
+    const winnerId = winner === 'a' ? fixture.aId : fixture.bId
+    const loserId = winner === 'a' ? fixture.bId : fixture.aId
     try {
-      await record.mutateAsync({ fixtureId: fixture.id, winnerId, loserId, score: score.trim() || undefined, recordedBy: user?.uid ?? 'unknown' })
-      setOpen(false)
+      await record.mutateAsync({
+        fixtureId: fixture.id,
+        winnerId,
+        loserId,
+        score: formatScore(sets, winner),
+        format: def.value,
+        recordedBy: user?.uid ?? 'unknown',
+      })
+      close()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao registrar.')
     }
@@ -230,44 +256,36 @@ function FixtureRow({
 
   return (
     <li className={`rounded-2xl border bg-surface p-4 ${mine ? 'border-accent/40' : 'border-border'}`}>
-      <div className="flex items-center gap-2">
-        <Side name={fixture.aName} won={played && fixture.winnerId === fixture.aId} />
-        <span className="px-2 text-xs font-medium text-fg-subtle">vs</span>
-        <Side name={fixture.bName} won={played && fixture.winnerId === fixture.bId} right />
-      </div>
-
-      {played ? (
-        fixture.score && <p className="mt-2 text-center text-xs text-fg-muted">{fixture.score}</p>
-      ) : canRecord ? (
-        <div className="mt-3">
-          {open ? (
-            <div className="flex flex-col gap-2">
-              <input
-                value={score}
-                onChange={e => setScore(e.target.value)}
-                placeholder="Placar (opcional) — 6-4 6-3"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)]"
-              />
-              <div className="flex gap-2">
-                <Button className="flex-1" disabled={record.isPending} onClick={() => submit(fixture.aId, fixture.bId)}>
-                  {fixture.aName} venceu
-                </Button>
-                <Button className="flex-1" disabled={record.isPending} onClick={() => submit(fixture.bId, fixture.aId)}>
-                  {fixture.bName} venceu
-                </Button>
-              </div>
-              {error && <p className="text-xs text-danger">{error}</p>}
-              <button type="button" onClick={() => setOpen(false)} className="text-xs text-fg-subtle hover:text-fg">
-                cancelar
-              </button>
-            </div>
-          ) : (
-            <Button variant="ghost" className="w-full" onClick={() => setOpen(true)}>
-              Registrar resultado
+      {open ? (
+        <div className="flex flex-col gap-3">
+          <Scoreboard nameA={fixture.aName} nameB={fixture.bName} sets={sets} def={def} onChange={setSets} />
+          {error && <p className="text-xs text-danger">{error}</p>}
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={record.isPending || !winner} onClick={submit}>
+              {record.isPending ? 'Registrando…' : 'Salvar resultado'}
             </Button>
-          )}
+            <Button variant="ghost" onClick={close}>
+              Cancelar
+            </Button>
+          </div>
         </div>
-      ) : null}
+      ) : (
+        <>
+          <div className="flex items-center gap-2">
+            <Side name={fixture.aName} won={played && fixture.winnerId === fixture.aId} />
+            <span className="px-2 text-xs font-medium text-fg-subtle">vs</span>
+            <Side name={fixture.bName} won={played && fixture.winnerId === fixture.bId} right />
+          </div>
+
+          {played
+            ? fixture.score && <p className="mt-2 text-center text-xs text-fg-muted">{fixture.score}</p>
+            : canRecord && (
+                <Button variant="ghost" className="mt-3 w-full" onClick={() => setOpen(true)}>
+                  Registrar resultado
+                </Button>
+              )}
+        </>
+      )}
     </li>
   )
 }

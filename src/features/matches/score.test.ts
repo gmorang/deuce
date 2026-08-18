@@ -109,4 +109,14 @@ describe('formatScore', () => {
       ),
     ).toBe('6-4 6-2')
   })
+
+  it('appends tie-break points on a 7-6 set', () => {
+    expect(formatScore([{ a: 7, b: 6, tb: 5 }], 'a')).toBe('7-6(5)')
+    // From the loser's perspective the parenthetical stays the same.
+    expect(formatScore([{ a: 6, b: 7, tb: 5 }], 'b')).toBe('7-6(5)')
+  })
+
+  it('ignores tie-break points on non 7-6 sets', () => {
+    expect(formatScore([{ a: 6, b: 3, tb: 5 }], 'a')).toBe('6-3')
+  })
 })

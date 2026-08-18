@@ -141,11 +141,12 @@ export function useRecordFixture(rankingId: string, roundId: string) {
       winnerId,
       loserId,
       score,
+      format,
       recordedBy,
-    }: { fixtureId: string; winnerId: string; loserId: string; score?: string; recordedBy: string }) => {
+    }: { fixtureId: string; winnerId: string; loserId: string; score?: string; format?: string; recordedBy: string }) => {
       const fixtureRef = doc(db, 'rankings', rankingId, 'rounds', roundId, 'fixtures', fixtureId)
       await runTransaction(db, async tx => {
-        const matchId = await applyMatchInTransaction(tx, rankingId, { winnerId, loserId, score, recordedBy })
+        const matchId = await applyMatchInTransaction(tx, rankingId, { winnerId, loserId, score, format, recordedBy })
         tx.update(fixtureRef, { status: 'played', matchId, winnerId, score: score ?? null })
       })
     },
