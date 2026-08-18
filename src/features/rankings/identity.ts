@@ -1,12 +1,12 @@
 /** Visual identity options for a ranking: an emoji icon on a colored disc. */
 
 export const RANKING_COLORS: Record<string, [bg: string, fg: string]> = {
-  green: ['#dcfce7', '#166534'],
-  blue: ['#dbeafe', '#1e40af'],
-  amber: ['#fef3c7', '#92400e'],
-  rose: ['#ffe4e6', '#9f1239'],
-  violet: ['#ede9fe', '#5b21b6'],
-  cyan: ['#cffafe', '#155e75'],
+  green: ['var(--rank-green-bg)', 'var(--rank-green-fg)'],
+  blue: ['var(--rank-blue-bg)', 'var(--rank-blue-fg)'],
+  amber: ['var(--rank-amber-bg)', 'var(--rank-amber-fg)'],
+  rose: ['var(--rank-rose-bg)', 'var(--rank-rose-fg)'],
+  violet: ['var(--rank-violet-bg)', 'var(--rank-violet-fg)'],
+  cyan: ['var(--rank-cyan-bg)', 'var(--rank-cyan-fg)'],
 }
 
 export const RANKING_COLOR_KEYS = Object.keys(RANKING_COLORS)

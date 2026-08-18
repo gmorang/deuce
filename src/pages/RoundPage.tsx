@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Avatar } from '../components/Avatar'
+import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
@@ -81,12 +82,12 @@ function RoundView({ rankingId, round }: { rankingId: string; round: Round }) {
 
 function StatusPill({ status }: { status: Round['status'] }) {
   const map = {
-    confirming: ['Confirmando', 'bg-amber-500/15 text-amber-600'],
-    drawn: ['Sorteada', 'bg-accent/15 text-accent'],
-    closed: ['Encerrada', 'bg-surface-2 text-fg-muted'],
+    confirming: ['Confirmando', 'amber'],
+    drawn: ['Sorteada', 'accent'],
+    closed: ['Encerrada', 'neutral'],
   } as const
-  const [label, cls] = map[status]
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>
+  const [label, tone] = map[status]
+  return <Badge tone={tone}>{label}</Badge>
 }
 
 function ConfirmingPanel({
@@ -151,7 +152,7 @@ function ConfirmingPanel({
             {draw.isPending ? 'Sorteando…' : 'Sortear confrontos'}
           </Button>
           {participants.length < 2 && <p className="text-xs text-fg-subtle">Precisa de pelo menos 2 confirmados.</p>}
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
         </div>
       )}
     </div>
@@ -255,7 +256,7 @@ function FixtureRow({
                   {fixture.bName} venceu
                 </Button>
               </div>
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className="text-xs text-danger">{error}</p>}
               <button type="button" onClick={() => setOpen(false)} className="text-xs text-fg-subtle hover:text-fg">
                 cancelar
               </button>

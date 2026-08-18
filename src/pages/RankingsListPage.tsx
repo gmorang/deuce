@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { RankingBadge } from '../components/RankingBadge'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
@@ -46,7 +47,7 @@ export function RankingsListPage() {
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 truncate font-medium">
                   {r.name}
-                  {r.archived && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">arquivado</span>}
+                  {r.archived && <Badge tone="neutral">arquivado</Badge>}
                 </p>
                 {r.description && <p className="mt-0.5 line-clamp-2 text-sm text-fg-muted">{r.description}</p>}
               </div>

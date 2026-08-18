@@ -1,21 +1,79 @@
 @import "tailwindcss";
 
-/* Semantic design tokens — light by default, swapped under dark system theme.
-   Tuned for a premium, low-contrast feel (Linear / Raycast / Resend). */
+/* ============================================================
+   Deuce Design System — tokens (see /Deuce Design System)
+   Semantic, light by default, swapped under dark system theme.
+   ============================================================ */
 :root {
+  /* Surfaces & text */
   --bg: #fcfcfd;
   --surface: #ffffff;
   --surface-2: #f4f4f5;
   --fg: #09090b;
   --fg-muted: #52525b;
   --fg-subtle: #a1a1aa;
+
+  /* Lines */
   --border: #ececec;
   --border-strong: #e0e0e2;
-  --accent: #059669;
+
+  /* Brand */
+  --accent: #059669; /* emerald — the single primary action */
   --accent-fg: #ffffff;
-  --ball: #c8e64a;
+  --ball: #c8e64a; /* tennis-ball chartreuse — the Deuce mark only */
   --ring: rgba(5, 150, 105, 0.35);
+
+  /* Feedback */
+  --danger: #dc2626;
+  --danger-fg: #ffffff;
+
+  /* Podium / medals */
+  --gold: #f5c451;
+  --gold-fg: #d9a021;
+  --silver: #9ca3af;
+  --bronze: #cd7f4d;
+
+  /* Ranking identity discs — [bg, fg] */
+  --rank-green-bg: #dcfce7;
+  --rank-green-fg: #166534;
+  --rank-blue-bg: #dbeafe;
+  --rank-blue-fg: #1e40af;
+  --rank-amber-bg: #fef3c7;
+  --rank-amber-fg: #92400e;
+  --rank-rose-bg: #ffe4e6;
+  --rank-rose-fg: #9f1239;
+  --rank-violet-bg: #ede9fe;
+  --rank-violet-fg: #5b21b6;
+  --rank-cyan-bg: #cffafe;
+  --rank-cyan-fg: #155e75;
+
+  /* Corner radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Elevation — soft, low-contrast, close ambient */
   --shadow: 0 1px 2px rgba(9, 9, 11, 0.04), 0 8px 24px -12px rgba(9, 9, 11, 0.12);
+  --shadow-sm: 0 1px 2px rgba(9, 9, 11, 0.05);
+  --shadow-accent: 0 2px 16px -4px var(--ring);
+  --shadow-ball: 0 0 12px var(--ball);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+
+  /* Signature brand gradient — reserved for the mark & celebratory moments */
+  --grad-brand: linear-gradient(120deg, #34d399 0%, #c8e64a 100%);
+
+  /* Typography */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --tracking-tight: -0.02em;
+  --tracking-body: -0.011em;
+  --tracking-wide: 0.02em;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,13 +88,16 @@
     --border-strong: rgba(255, 255, 255, 0.14);
     --accent: #34d399;
     --accent-fg: #052e1b;
-    --ball: #c8e64a;
     --ring: rgba(52, 211, 153, 0.35);
-    /* Elevation + a faint top light edge — the Linear/Raycast surface look. */
+    --danger: #f87171;
+    --danger-fg: #1a0606;
+    /* Elevation gains a faint inset top light edge in the dark theme. */
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 }
 
+/* Map the semantic tokens to Tailwind utilities (bg-surface, text-fg, …). */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -49,7 +110,12 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-ball: var(--ball);
-  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --font-sans: var(--font-sans);
 }
 
 :root {
@@ -66,10 +132,10 @@ body {
   margin: 0;
   background-color: var(--bg);
   color: var(--fg);
-  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.011em;
 }
 
 /* Layered ambient glow, dark theme only — subtle depth behind the UI. */
@@ -82,7 +148,7 @@ body {
   }
 }
 
-/* Tabular figures for ratings so numbers line up in the ranking. */
+/* Tabular figures so ratings line up in the ranking. */
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -91,7 +157,7 @@ body {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
 
-/* Gentle entrance for lists/cards. */
+/* The signature entrance — pair with an inline animation-delay for stagger. */
 @keyframes rise {
   from {
     opacity: 0;
@@ -104,7 +170,7 @@ body {
 }
 
 .rise {
-  animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise var(--dur-slow) var(--ease-out) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

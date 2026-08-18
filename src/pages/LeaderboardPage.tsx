@@ -3,7 +3,10 @@ import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Avatar } from '../components/Avatar'
+import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
+import { MedalRank } from '../components/MedalRank'
+import { RatingBar } from '../components/RatingBar'
 import { useAuth } from '../features/auth/AuthProvider'
 import type { RankedMember } from '../features/rankings/types'
 import { useJoinRanking, useMembers } from '../features/rankings/useMembers'
@@ -14,12 +17,6 @@ type JoinForm = z.infer<typeof joinSchema>
 
 const inputClass =
   'w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-fg-subtle focus:border-accent focus:ring-2 focus:ring-[var(--ring)]'
-
-const MEDAL: Record<number, string> = {
-  1: 'bg-[#f5c451]/15 text-[#d9a021] ring-1 ring-inset ring-[#f5c451]/30',
-  2: 'bg-[#9ca3af]/15 text-[#9ca3af] ring-1 ring-inset ring-[#9ca3af]/30',
-  3: 'bg-[#cd7f4d]/15 text-[#cd7f4d] ring-1 ring-inset ring-[#cd7f4d]/30',
-}
 
 export function LeaderboardPage() {
   const { rankingId } = useParams()
@@ -84,32 +81,24 @@ function Row({
       className={`rise flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/50 ${isMe ? 'bg-accent/[0.06]' : ''}`}
       style={{ animationDelay: `${delay}ms` }}
     >
-      {m.rank <= 3 ? (
-        <span className={`flex size-6 items-center justify-center rounded-full text-xs font-bold ${MEDAL[m.rank]}`}>{m.rank}</span>
-      ) : (
-        <span className="w-6 text-center text-sm tabular text-fg-subtle">{m.rank}</span>
-      )}
+      <MedalRank rank={m.rank} size={24} />
       <Avatar name={m.displayName} size={40} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 truncate font-medium">
           {m.displayName}
-          {isMe && <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent">você</span>}
+          {isMe && <Badge tone="accent">você</Badge>}
         </p>
         <p className="flex items-center gap-1.5 text-xs text-fg-muted">
-          {m.wins}V · {m.losses}D
-          {provisional && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-fg-subtle">provisório</span>}
+          {m.wins}V · {m.losses}D{provisional && <Badge tone="neutral">provisório</Badge>}
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-surface-2 sm:block">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${Math.max(fill * 100, 6)}%`, background: m.rank === 1 ? 'var(--accent)' : 'var(--fg-subtle)' }}
-          />
+        <div className="hidden sm:block">
+          <RatingBar fill={fill} leader={m.rank === 1} width={64} />
         </div>
         <div className="w-12 text-right">
           <p className={`tabular font-semibold ${m.rank === 1 ? 'text-accent' : ''}`}>{m.rating}</p>
-          <p className="text-[10px] font-medium uppercase tracking-wide text-fg-subtle">pts</p>
+          <p className="text-[10px] font-medium uppercase tracking-[0.02em] text-fg-subtle">pts</p>
         </div>
       </div>
     </li>
@@ -141,7 +130,7 @@ function JoinCard({ rankingId }: { rankingId: string }) {
       <form onSubmit={onSubmit} className="mt-4 flex items-start gap-2">
         <div className="flex-1">
           <input {...register('displayName')} placeholder="Seu nome" className={inputClass} autoComplete="off" />
-          {errors.displayName && <p className="mt-1.5 text-xs text-red-500">{errors.displayName.message}</p>}
+          {errors.displayName && <p className="mt-1.5 text-xs text-danger">{errors.displayName.message}</p>}
         </div>
         <Button type="submit" disabled={join.isPending}>
           {join.isPending ? 'Entrando…' : 'Entrar'}

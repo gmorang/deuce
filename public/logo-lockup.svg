@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 100" width="260" height="100" role="img" aria-label="Deuce">
+<defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"></stop><stop offset="1" stop-color="#c8e64a"></stop></linearGradient></defs>
+<path d="M14 74 C34 74 40 26 62 26" fill="none" stroke="url(#dg)" stroke-width="10" stroke-linecap="round"></path>
+<path d="M38 74 C58 74 64 26 86 26" fill="none" stroke="url(#dg)" stroke-width="10" stroke-linecap="round" opacity=".45"></path>
+<circle cx="62" cy="26" r="9" fill="#c8e64a"></circle>
+<text x="104" y="65" font-family="Inter Variable, Inter, system-ui, sans-serif" font-size="46" font-weight="640" letter-spacing="-1.6" fill="#f4f4f5">Deuce</text>
+</svg>

@@ -1,11 +1,13 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
+import { Badge } from './Badge'
+import { Logo } from './Logo'
 
 function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
-      <span className="size-2.5 rounded-full bg-ball shadow-[0_0_12px_var(--ball)]" />
+      <Logo size={20} />
       Deuce
     </Link>
   )
@@ -71,7 +73,11 @@ export function AppLayout() {
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2">
               <Brand />
-              {isAdmin && <span className="rounded-full bg-accent/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">admin</span>}
+              {isAdmin && (
+                <Badge tone="accent" uppercase>
+                  admin
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {user?.photoURL ? (

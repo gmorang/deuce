@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { Button } from '../components/Button'
+import { Logo } from '../components/Logo'
 import { useAuth } from '../features/auth/AuthProvider'
 
 export function LoginPage() {
@@ -16,7 +17,7 @@ export function LoginPage() {
       <div className="relative flex w-full max-w-sm flex-col items-center gap-10">
         <div className="flex flex-col items-center gap-5">
           <span className="flex size-16 items-center justify-center rounded-2xl border border-border-strong bg-surface shadow-[var(--shadow)]">
-            <span className="size-7 rounded-full bg-ball shadow-[0_0_20px_var(--ball)]" />
+            <Logo size={36} />
           </span>
           <div>
             <h1 className="text-5xl font-semibold tracking-tight">Deuce</h1>

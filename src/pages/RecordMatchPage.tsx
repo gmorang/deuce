@@ -66,7 +66,7 @@ export function RecordMatchPage() {
       <Field label="Placar (opcional)" error={errors.score?.message}>
         <input {...register('score')} placeholder="6-4 3-6 7-5" className={controlClass} autoComplete="off" />
       </Field>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <Button type="submit" disabled={isSubmitting} className="w-full py-3">
         {isSubmitting ? 'Registrando…' : 'Registrar resultado'}
       </Button>
@@ -80,7 +80,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-fg-muted">{label}</span>
       {children}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </label>
   )
 }

@@ -109,12 +109,12 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-fg-muted">Nome</span>
             <input {...register('name')} className={inputClass} autoComplete="off" />
-            {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
+            {errors.name && <span className="text-xs text-danger">{errors.name.message}</span>}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-fg-muted">Descrição (opcional)</span>
             <input {...register('description')} placeholder="Ex: Ranking da firma, toda sexta" className={inputClass} autoComplete="off" />
-            {errors.description && <span className="text-xs text-red-500">{errors.description.message}</span>}
+            {errors.description && <span className="text-xs text-danger">{errors.description.message}</span>}
           </label>
         </Section>
 
@@ -160,7 +160,7 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-fg-muted">Partidas para sair de “provisório”</span>
                 <input type="number" {...register('provisionalMatches')} className={inputClass} />
-                {errors.provisionalMatches && <span className="text-xs text-red-500">{errors.provisionalMatches.message}</span>}
+                {errors.provisionalMatches && <span className="text-xs text-danger">{errors.provisionalMatches.message}</span>}
               </label>
             )}
           </div>
@@ -172,8 +172,8 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
       </form>
 
       {/* Zona de perigo */}
-      <section className="flex flex-col gap-3 rounded-2xl border border-red-500/30 bg-red-500/5 p-5">
-        <h2 className="font-medium text-red-500">Zona de perigo</h2>
+      <section className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger/5 p-5">
+        <h2 className="font-medium text-danger">Zona de perigo</h2>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">{ranking.archived ? 'Ranking arquivado' : 'Arquivar ranking'}</p>
@@ -183,19 +183,14 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
             {ranking.archived ? 'Desarquivar' : 'Arquivar'}
           </Button>
         </div>
-        <div className="flex items-center justify-between gap-3 border-t border-red-500/20 pt-3">
+        <div className="flex items-center justify-between gap-3 border-t border-danger/20 pt-3">
           <div>
             <p className="text-sm font-medium">Excluir ranking</p>
             <p className="text-xs text-fg-muted">Apaga membros e partidas. Não dá pra desfazer.</p>
           </div>
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={deleteRanking.isPending}
-            className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-          >
+          <Button variant="danger" disabled={deleteRanking.isPending} onClick={onDelete}>
             {deleteRanking.isPending ? 'Excluindo…' : 'Excluir'}
-          </button>
+          </Button>
         </div>
       </section>
     </div>

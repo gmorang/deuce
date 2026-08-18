@@ -64,12 +64,12 @@ export function CreateRankingPage() {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-fg-muted">Nome</span>
             <input {...register('name')} placeholder="Ex: Ranking da firma" className={inputClass} autoComplete="off" />
-            {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
+            {errors.name && <span className="text-xs text-danger">{errors.name.message}</span>}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-fg-muted">Descrição (opcional)</span>
             <input {...register('description')} placeholder="Ex: toda sexta, quadra do clube" className={inputClass} autoComplete="off" />
-            {errors.description && <span className="text-xs text-red-500">{errors.description.message}</span>}
+            {errors.description && <span className="text-xs text-danger">{errors.description.message}</span>}
           </label>
         </div>
 
