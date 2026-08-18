@@ -6,8 +6,15 @@ import { useAuth } from '../features/auth/AuthProvider'
 import { isEmbeddedBrowser } from '../lib/browser'
 
 export function LoginPage() {
-  const { user, loading, signIn } = useAuth()
+  const { user, loading, error, signIn } = useAuth()
   const embedded = isEmbeddedBrowser()
+  const [pending, setPending] = useState(false)
+
+  const onSignIn = async () => {
+    setPending(true)
+    await signIn()
+    setPending(false)
+  }
 
   if (loading) return null
   if (user) return <Navigate to="/rankings" replace />
@@ -31,10 +38,13 @@ export function LoginPage() {
         {embedded ? (
           <OpenInBrowser />
         ) : (
-          <Button onClick={() => signIn()} className="w-full py-3">
-            <GoogleIcon />
-            Entrar com Google
-          </Button>
+          <div className="flex w-full flex-col gap-3">
+            <Button onClick={onSignIn} disabled={pending} className="w-full py-3">
+              <GoogleIcon />
+              {pending ? 'Entrando…' : 'Entrar com Google'}
+            </Button>
+            {error && <p className="text-sm text-danger">{error}</p>}
+          </div>
         )}
       </div>
     </main>
