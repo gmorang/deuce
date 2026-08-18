@@ -1,17 +1,13 @@
 rules_version = '2';
 
-// Multi-ranking model for a trusted group of friends.
+// Private, invite-only rankings for a trusted group of friends.
 //
-// - users/{uid}: canonical profile, self-writable EXCEPT the `role` field.
-//   role 'admin' can create/manage rankings. A user cannot promote themselves;
-//   only an existing admin (or the console) can change someone's role. Bootstrap
-//   the first admin by editing the field in the Firebase console.
-// - rankings/{id}: only admins create; open list, readable by any signed-in user.
-// - rankings/{id}/members/{uid}: each user joins by creating their OWN member doc
-//   with clean starting stats. Rating changes happen client-side when a match is
-//   recorded, so updates stay open to signed-in users for now (a Cloud Function
-//   would be needed to make ratings fully tamper-proof).
-// - rankings/{id}/matches: append-only history.
+// - users/{uid}: canonical profile, self-writable except `role`.
+// - inviteCodes/{code}: public lookup (code -> rankingId) so a joiner can find a
+//   private ranking. Readable by any signed-in user (you must know the code);
+//   only admins create/revoke them.
+// - rankings/{id} and all subcollections are readable only by MEMBERS (or admin).
+//   You join by creating your own member doc with a valid invite code.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -24,16 +20,21 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Configured starting rating for a ranking, tolerant of missing settings.
-    function rankingStartRating(rankingId) {
-      return get(/databases/$(database)/documents/rankings/$(rankingId)).data.get('settings', {}).get('startRating', 1200);
+    function isMember(rankingId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/rankings/$(rankingId)/members/$(request.auth.uid));
+    }
+
+    // A join is valid when the supplied code maps to this ranking.
+    function validInvite(rankingId, code) {
+      return code is string
+        && exists(/databases/$(database)/documents/inviteCodes/$(code))
+        && get(/databases/$(database)/documents/inviteCodes/$(code)).data.rankingId == rankingId;
     }
 
     match /users/{uid} {
       allow read: if signedIn();
-      // New users may only create their own profile as a 'player'.
       allow create: if signedIn() && request.auth.uid == uid && request.resource.data.role == 'player';
-      // Owner may edit their profile but not their own role; admins may change anything.
       allow update: if signedIn() && (
         isAdmin()
         || (request.auth.uid == uid && request.resource.data.role == resource.data.role)
@@ -41,52 +42,59 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /rankings/{rankingId} {
+    // Code -> rankingId lookup. Knowing the code is the gate to read it.
+    match /inviteCodes/{code} {
       allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /rankings/{rankingId} {
+      allow read: if isMember(rankingId) || isAdmin();
       allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isAdmin();
 
       match /members/{uid} {
-        allow read: if signedIn();
+        // Members (and admins) see the roster; you can always read your own doc,
+        // and reads of a missing doc are allowed so a joiner can check membership.
+        allow read: if signedIn() && (isAdmin() || isMember(rankingId) || resource == null || resource.data.uid == request.auth.uid);
 
-        // Join: only your own uid, with untouched starting stats matching the
-        // ranking's configured start rating.
+        // Join: your own uid, clean stats, and either you're admin or you have a
+        // valid invite code for this ranking.
         allow create: if signedIn()
           && request.auth.uid == uid
-          && request.resource.data.rating == rankingStartRating(rankingId)
+          && request.resource.data.uid == uid
           && request.resource.data.wins == 0
           && request.resource.data.losses == 0
-          && request.resource.data.matchesPlayed == 0;
+          && request.resource.data.matchesPlayed == 0
+          && (isAdmin() || validInvite(rankingId, request.resource.data.viaCode));
 
-        // Trust-based rating updates when recording a match; tighten with a
-        // Cloud Function later.
-        allow update: if signedIn();
+        // Trust-based rating updates when recording a match (members only).
+        allow update: if isMember(rankingId) || isAdmin();
         allow delete: if isAdmin() || request.auth.uid == uid;
       }
 
       match /matches/{matchId} {
-        allow read: if signedIn();
-        allow create: if signedIn();
+        allow read: if isMember(rankingId) || isAdmin();
+        allow create: if isMember(rankingId) || isAdmin();
         allow update: if false; // append-only
-        allow delete: if isAdmin(); // admin can fix mistakes / delete a ranking
+        allow delete: if isAdmin();
       }
 
-      // Weekly draw. Admin opens/draws/closes rounds; players confirm themselves.
+      // Weekly draw. Admin opens/draws/closes; members confirm themselves.
       match /rounds/{roundId} {
-        allow read: if signedIn();
+        allow read: if isMember(rankingId) || isAdmin();
         allow create, update, delete: if isAdmin();
 
         match /participants/{uid} {
-          allow read: if signedIn();
-          // Confirm / cancel your own attendance.
-          allow create, delete: if signedIn() && request.auth.uid == uid;
+          allow read: if isMember(rankingId) || isAdmin();
+          allow create, delete: if signedIn() && request.auth.uid == uid && isMember(rankingId);
           allow update: if false;
         }
 
         match /fixtures/{fixtureId} {
-          allow read: if signedIn();
-          allow create, delete: if isAdmin(); // written by the draw
-          allow update: if signedIn(); // players record the result
+          allow read: if isMember(rankingId) || isAdmin();
+          allow create, delete: if isAdmin();
+          allow update: if isMember(rankingId) || isAdmin();
         }
       }
     }

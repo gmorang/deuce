@@ -5,10 +5,11 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '../components/Button'
 import { IdentityPicker } from '../components/IdentityPicker'
+import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from '../features/rankings/identity'
 import { DEFAULT_RANKING_SETTINGS, type Ranking } from '../features/rankings/types'
-import { useDeleteRanking, useRanking, useSetArchived, useUpdateRanking } from '../features/rankings/useRankings'
+import { useDeleteRanking, useRanking, useRegenerateCode, useSetArchived, useUpdateRanking } from '../features/rankings/useRankings'
 
 export function RankingSettingsPage() {
   const { rankingId } = useParams()
@@ -171,6 +172,8 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
         </Button>
       </form>
 
+      <InviteSection ranking={ranking} />
+
       {/* Zona de perigo */}
       <section className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger/5 p-5">
         <h2 className="font-medium text-danger">Zona de perigo</h2>
@@ -194,6 +197,54 @@ function SettingsForm({ ranking }: { ranking: Ranking }) {
         </div>
       </section>
     </div>
+  )
+}
+
+function InviteSection({ ranking }: { ranking: Ranking }) {
+  const { user } = useAuth()
+  const regenerate = useRegenerateCode(ranking.id)
+  const [copied, setCopied] = useState(false)
+  const code = ranking.inviteCode ?? '—'
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  const onRegenerate = () => {
+    if (!user) return
+    if (!window.confirm('Gerar um novo código? O código atual deixa de funcionar.')) return
+    regenerate.mutate({ oldCode: ranking.inviteCode, startRating: (ranking.settings ?? DEFAULT_RANKING_SETTINGS).startRating, ownerId: user.uid })
+  }
+
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5">
+      <div>
+        <h2 className="font-medium">Convite</h2>
+        <p className="mt-1 text-sm text-fg-muted">Compartilhe o código para as pessoas entrarem neste ranking.</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex-1 rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-center font-mono text-lg font-semibold tracking-[0.3em]">
+          {code}
+        </span>
+        <Button variant="outline" onClick={copy}>
+          {copied ? 'Copiado ✓' : 'Copiar'}
+        </Button>
+      </div>
+      <button
+        type="button"
+        onClick={onRegenerate}
+        disabled={regenerate.isPending}
+        className="self-start text-xs text-fg-muted transition-colors hover:text-fg disabled:opacity-50"
+      >
+        {regenerate.isPending ? 'Gerando…' : 'Gerar novo código'}
+      </button>
+    </section>
   )
 }
 

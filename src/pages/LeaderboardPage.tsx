@@ -5,9 +5,11 @@ import { z } from 'zod'
 import { Avatar } from '../components/Avatar'
 import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
+import { InviteCard } from '../components/InviteCard'
 import { MedalRank } from '../components/MedalRank'
 import { RatingBar } from '../components/RatingBar'
 import { useAuth } from '../features/auth/AuthProvider'
+import { useIsAdmin } from '../features/auth/useIsAdmin'
 import type { RankedMember } from '../features/rankings/types'
 import { useJoinRanking, useMembers } from '../features/rankings/useMembers'
 import { useRanking } from '../features/rankings/useRankings'
@@ -23,6 +25,7 @@ export function LeaderboardPage() {
   const { user } = useAuth()
   const { data: members, isLoading, isError } = useMembers(rankingId)
   const { data: ranking } = useRanking(rankingId)
+  const { data: isAdmin } = useIsAdmin()
 
   const isMember = !!members?.some(m => m.id === user?.uid)
   const provisionalMatches = ranking?.settings?.provisionalEnabled ? (ranking.settings.provisionalMatches ?? 0) : 0
@@ -63,6 +66,7 @@ export function LeaderboardPage() {
         )}
       </section>
 
+      {isMember && ranking && <InviteCard ranking={ranking} isAdmin={!!isAdmin} />}
       {!isLoading && !isMember && rankingId && <JoinCard rankingId={rankingId} />}
     </div>
   )

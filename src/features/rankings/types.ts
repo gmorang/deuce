@@ -21,6 +21,8 @@ export interface Ranking {
   ownerId: string
   createdAt: number
   archived: boolean
+  /** Short code people type to join this private ranking. */
+  inviteCode: string
   settings: RankingSettings
 }
 
@@ -34,6 +36,9 @@ export const DEFAULT_RANKING_SETTINGS: RankingSettings = {
 export interface Member {
   /** Document id — equals the member's Firebase Auth uid. */
   id: string
+  /** Same value as `id`; stored as a field so it can be queried across all
+   * rankings (collection-group) to list "my rankings". */
+  uid: string
   displayName: string
   photoURL?: string | null
   rating: number

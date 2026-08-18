@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { collection, doc, getDoc, getDocs, orderBy, query, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
+import { useAuth } from '../auth/AuthProvider'
 import { DEFAULT_RATING } from '../elo/elo'
+import { normalizeInviteCode } from './codes'
 import type { Member, RankedMember, Ranking } from './types'
 
 const membersRef = (rankingId: string) => collection(db, 'rankings', rankingId, 'members')
@@ -20,8 +22,8 @@ export function useMembers(rankingId: string | undefined) {
 }
 
 /**
- * Join a ranking: the signed-in user creates their own member doc, keyed by uid,
- * with clean starting stats. Rules only allow creating the doc at your own uid.
+ * Join a ranking you can already see (used by admins on the ranking page). The
+ * uid field is stored so the ranking shows up in "my rankings" queries.
  */
 export function useJoinRanking() {
   const qc = useQueryClient()
@@ -40,6 +42,7 @@ export function useJoinRanking() {
       const rankingSnap = await getDoc(doc(db, 'rankings', rankingId))
       const startRating = (rankingSnap.data() as Ranking | undefined)?.settings?.startRating ?? DEFAULT_RATING
       await setDoc(doc(db, 'rankings', rankingId, 'members', uid), {
+        uid,
         displayName,
         photoURL: photoURL ?? null,
         rating: startRating,
@@ -49,6 +52,48 @@ export function useJoinRanking() {
         joinedAt: Date.now(),
       })
     },
-    onSuccess: (_data, { rankingId }) => qc.invalidateQueries({ queryKey: ['members', rankingId] }),
+    onSuccess: (_data, { rankingId }) => {
+      qc.invalidateQueries({ queryKey: ['members', rankingId] })
+      qc.invalidateQueries({ queryKey: ['my-rankings'] })
+    },
+  })
+}
+
+/**
+ * Join a private ranking with an invite code. Looks the code up in the public
+ * `inviteCodes` collection, then creates the member doc (validated against the
+ * code in the security rules). Returns the ranking id to navigate to.
+ */
+export function useJoinByCode() {
+  const qc = useQueryClient()
+  const { user } = useAuth()
+  return useMutation({
+    mutationFn: async (rawCode: string): Promise<string> => {
+      if (!user) throw new Error('Faça login primeiro.')
+      const code = normalizeInviteCode(rawCode)
+      if (code.length < 4) throw new Error('Código inválido.')
+
+      const inviteSnap = await getDoc(doc(db, 'inviteCodes', code))
+      if (!inviteSnap.exists()) throw new Error('Código não encontrado. Confira com quem te convidou.')
+      const invite = inviteSnap.data() as { rankingId: string; startRating?: number }
+
+      const memberRef = doc(db, 'rankings', invite.rankingId, 'members', user.uid)
+      const existing = await getDoc(memberRef)
+      if (existing.exists()) return invite.rankingId
+
+      await setDoc(memberRef, {
+        uid: user.uid,
+        displayName: user.displayName ?? 'Jogador',
+        photoURL: user.photoURL ?? null,
+        rating: invite.startRating ?? DEFAULT_RATING,
+        wins: 0,
+        losses: 0,
+        matchesPlayed: 0,
+        joinedAt: Date.now(),
+        viaCode: code,
+      })
+      return invite.rankingId
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-rankings'] }),
   })
 }

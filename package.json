@@ -44,16 +44,9 @@
     "node": ">=20"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,jsonc,css,md}": [
-      "biome check --write --no-errors-on-unmatched"
-    ]
+    "*.{ts,tsx,js,jsx,json,jsonc,css,md}": ["biome check --write --no-errors-on-unmatched"]
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@firebase/util",
-      "protobufjs",
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome", "@firebase/util", "protobufjs", "esbuild"]
   }
 }
