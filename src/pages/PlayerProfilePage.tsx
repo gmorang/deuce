@@ -30,9 +30,10 @@ function fromPlayerSide(match: Match, playerId: string): PlayerMatch {
     id: match.id,
     won,
     opponentId: won ? match.loserId : match.winnerId,
-    ratingBefore: won ? match.winnerRatingBefore : match.loserRatingBefore,
-    ratingAfter: won ? match.winnerRatingAfter : match.loserRatingAfter,
-    delta: won ? match.ratingDelta : -match.ratingDelta,
+    // Non-null on approved matches (the only ones usePlayerMatches returns).
+    ratingBefore: (won ? match.winnerRatingBefore : match.loserRatingBefore) ?? 0,
+    ratingAfter: (won ? match.winnerRatingAfter : match.loserRatingAfter) ?? 0,
+    delta: (won ? match.ratingDelta : -(match.ratingDelta ?? 0)) ?? 0,
     score: match.score,
     format: match.format,
     playedAt: match.playedAt,

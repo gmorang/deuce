@@ -24,7 +24,8 @@ export interface Fixture {
   aName: string
   bId: string
   bName: string
-  status: 'pending' | 'played'
+  /** pending = no result yet · reported = result awaiting approval · played = approved. */
+  status: 'pending' | 'reported' | 'played'
   matchId?: string | null
   /** Recorded result summary, for display once played. */
   winnerId?: string | null

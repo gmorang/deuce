@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, runTransaction, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
-import { applyMatchInTransaction } from '../matches/useMatches'
+import { buildPendingMatch, matchesRef } from '../matches/useMatches'
 import { buildHistory, drawRound } from './draw'
 import type { Fixture, Participant, Round } from './types'
 
@@ -130,8 +130,9 @@ export function useCloseRound(rankingId: string, roundId: string) {
 }
 
 /**
- * Record the result of a fixture: applies the Elo match and marks the fixture as
- * played, atomically, so the two never diverge.
+ * Report the result of a fixture: creates a PENDING match linked back to the
+ * fixture and marks the fixture as `reported`, atomically. The Elo is applied
+ * only when the opponent approves the match (which then closes the fixture).
  */
 export function useRecordFixture(rankingId: string, roundId: string) {
   const qc = useQueryClient()
@@ -145,15 +146,15 @@ export function useRecordFixture(rankingId: string, roundId: string) {
       recordedBy,
     }: { fixtureId: string; winnerId: string; loserId: string; score?: string; format?: string; recordedBy: string }) => {
       const fixtureRef = doc(db, 'rankings', rankingId, 'rounds', roundId, 'fixtures', fixtureId)
+      const newMatchRef = doc(matchesRef(rankingId))
       await runTransaction(db, async tx => {
-        const matchId = await applyMatchInTransaction(tx, rankingId, { winnerId, loserId, score, format, recordedBy })
-        tx.update(fixtureRef, { status: 'played', matchId, winnerId, score: score ?? null })
+        tx.set(newMatchRef, buildPendingMatch({ winnerId, loserId, score, format, recordedBy, roundId, fixtureId }))
+        tx.update(fixtureRef, { status: 'reported', matchId: newMatchRef.id })
       })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fixtures', rankingId, roundId] })
-      qc.invalidateQueries({ queryKey: ['members', rankingId] })
-      qc.invalidateQueries({ queryKey: ['matches', rankingId] })
+      qc.invalidateQueries({ queryKey: ['pending-matches', rankingId] })
     },
   })
 }

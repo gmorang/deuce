@@ -7,6 +7,8 @@ import { Scoreboard } from '../components/Scoreboard'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { type MatchFormatDef, type SetScore, computeWinner, formatScore, matchFormat } from '../features/matches/score'
+import type { Match } from '../features/matches/types'
+import { useApproveMatch, usePendingMatches, useRejectMatch } from '../features/matches/useMatches'
 import { useMembers } from '../features/rankings/useMembers'
 import { useRanking } from '../features/rankings/useRankings'
 import type { Fixture, Round } from '../features/rounds/types'
@@ -179,14 +181,26 @@ function DrawnPanel({
 }) {
   const closeRound = useCloseRound(rankingId, round.id)
   const { data: ranking } = useRanking(rankingId)
+  const { data: pending } = usePendingMatches(rankingId)
   const def = matchFormat(ranking?.settings?.defaultFormat)
   const closed = round.status === 'closed'
+  const pendingByFixture = new Map((pending ?? []).filter(m => m.fixtureId).map(m => [m.fixtureId as string, m]))
 
   return (
     <div className="flex flex-col gap-5">
       <ul className="flex flex-col gap-3">
         {fixtures.map(f => (
-          <FixtureRow key={f.id} rankingId={rankingId} roundId={round.id} fixture={f} mine={f.aId === myId || f.bId === myId} canRecord={!closed} def={def} />
+          <FixtureRow
+            key={f.id}
+            rankingId={rankingId}
+            roundId={round.id}
+            fixture={f}
+            mine={f.aId === myId || f.bId === myId}
+            myId={myId}
+            canRecord={!closed}
+            def={def}
+            pendingMatch={pendingByFixture.get(f.id)}
+          />
         ))}
       </ul>
 
@@ -210,23 +224,35 @@ function FixtureRow({
   roundId,
   fixture,
   mine,
+  myId,
   canRecord,
   def,
+  pendingMatch,
 }: {
   rankingId: string
   roundId: string
   fixture: Fixture
   mine: boolean
+  myId?: string
   canRecord: boolean
   def: MatchFormatDef
+  pendingMatch?: Match
 }) {
   const { user } = useAuth()
   const record = useRecordFixture(rankingId, roundId)
+  const approve = useApproveMatch(rankingId)
+  const reject = useRejectMatch(rankingId)
   const [open, setOpen] = useState(false)
   const [sets, setSets] = useState<SetScore[]>(() => emptySets(def.maxSets))
   const [error, setError] = useState<string | null>(null)
   const played = fixture.status === 'played'
+  const reported = fixture.status === 'reported'
   const winner = computeWinner(sets, def)
+
+  const resultWinnerId = played ? fixture.winnerId : reported ? pendingMatch?.winnerId : null
+  const resultScore = played ? fixture.score : pendingMatch?.score
+  const canConfirm = reported && !!pendingMatch && pendingMatch.approverId === myId
+  const resolving = approve.isPending || reject.isPending
 
   const close = () => {
     setOpen(false)
@@ -272,18 +298,54 @@ function FixtureRow({
       ) : (
         <>
           <div className="flex items-center gap-2">
-            <Side name={fixture.aName} won={played && fixture.winnerId === fixture.aId} />
+            <Side name={fixture.aName} won={resultWinnerId === fixture.aId} />
             <span className="px-2 text-xs font-medium text-fg-subtle">vs</span>
-            <Side name={fixture.bName} won={played && fixture.winnerId === fixture.bId} right />
+            <Side name={fixture.bName} won={resultWinnerId === fixture.bId} right />
           </div>
 
-          {played
-            ? fixture.score && <p className="mt-2 text-center text-xs text-fg-muted">{fixture.score}</p>
-            : canRecord && (
-                <Button variant="ghost" className="mt-3 w-full" onClick={() => setOpen(true)}>
-                  Registrar resultado
-                </Button>
+          {resultScore && <p className="mt-2 text-center text-xs text-fg-muted">{resultScore}</p>}
+
+          {reported && pendingMatch && (
+            <div className="mt-3">
+              {canConfirm ? (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    disabled={resolving}
+                    onClick={() => {
+                      setError(null)
+                      approve
+                        .mutateAsync({ matchId: pendingMatch.id, approvedBy: myId ?? '' })
+                        .catch(e => setError(e instanceof Error ? e.message : 'Erro ao confirmar.'))
+                    }}
+                  >
+                    {approve.isPending ? 'Confirmando…' : 'Confirmar'}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    disabled={resolving}
+                    onClick={() => {
+                      setError(null)
+                      reject
+                        .mutateAsync({ match: pendingMatch, rejectedBy: myId ?? '' })
+                        .catch(e => setError(e instanceof Error ? e.message : 'Erro ao recusar.'))
+                    }}
+                  >
+                    {reject.isPending ? '…' : 'Recusar'}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-center text-xs text-fg-muted">Aguardando confirmação do adversário</p>
               )}
+              {error && <p className="mt-2 text-center text-xs text-danger">{error}</p>}
+            </div>
+          )}
+
+          {!played && !reported && canRecord && (
+            <Button variant="ghost" className="mt-3 w-full" onClick={() => setOpen(true)}>
+              Registrar resultado
+            </Button>
+          )}
         </>
       )}
     </li>

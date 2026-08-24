@@ -106,9 +106,12 @@ export function RecordMatchPage() {
       </Field>
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      <Button type="submit" disabled={recordMatch.isPending || !winner} className="w-full py-3">
-        {recordMatch.isPending ? 'Registrando…' : 'Registrar resultado'}
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button type="submit" disabled={recordMatch.isPending || !winner} className="w-full py-3">
+          {recordMatch.isPending ? 'Enviando…' : 'Enviar resultado'}
+        </Button>
+        <p className="text-center text-xs text-fg-subtle">O adversário precisa confirmar antes de o resultado valer no ranking.</p>
+      </div>
     </form>
   )
 }

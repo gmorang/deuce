@@ -82,10 +82,20 @@ service cloud.firestore {
         allow delete: if isAdmin() || request.auth.uid == uid;
       }
 
+      // A match is created `pending` (touches no rating) and only its status may
+      // change: the approver (the participant who didn't record it) approves —
+      // which applies the Elo — or the approver/recorder rejects it. Ratings are
+      // still trust-based (a member update elsewhere) until a Cloud Function.
       match /matches/{matchId} {
         allow read: if isMember(rankingId) || isAdmin();
-        allow create: if isMember(rankingId) || isAdmin();
-        allow update: if false; // append-only
+        allow create: if (isMember(rankingId) || isAdmin()) && request.resource.data.status == 'pending';
+        allow update: if isAdmin() || (
+          resource.data.status == 'pending' && (
+            (request.resource.data.status == 'approved' && request.auth.uid == resource.data.approverId)
+            || (request.resource.data.status == 'rejected'
+                && (request.auth.uid == resource.data.approverId || request.auth.uid == resource.data.recordedBy))
+          )
+        );
         allow delete: if isAdmin();
       }
 

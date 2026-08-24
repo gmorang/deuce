@@ -7,6 +7,7 @@ import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { InviteCard } from '../components/InviteCard'
 import { MedalRank } from '../components/MedalRank'
+import { PendingMatches } from '../components/PendingMatches'
 import { RatingBar } from '../components/RatingBar'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useIsAdmin } from '../features/auth/useIsAdmin'
@@ -36,6 +37,8 @@ export function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      {isMember && rankingId && members && <PendingMatches rankingId={rankingId} members={members} />}
+
       <section>
         {members && members.length > 0 && (
           <div className="mb-3 flex items-baseline justify-between">
