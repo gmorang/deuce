@@ -2,11 +2,13 @@ rules_version = '2';
 
 // Private, invite-only rankings for a trusted group of friends.
 //
-// - users/{uid}: canonical profile, self-writable except `role`.
+// - Any signed-in user can create a ranking; the creator is its OWNER
+//   (rankings.ownerId). Ownership — not a global admin role — grants management:
+//   config, rounds, invite regen, archive/delete. There is no admin role.
+// - users/{uid}: canonical profile, self-writable.
 // - inviteCodes/{code}: public lookup (code -> rankingId) so a joiner can find a
-//   private ranking. Readable by any signed-in user (you must know the code);
-//   only admins create/revoke them.
-// - rankings/{id} and all subcollections are readable only by MEMBERS (or admin).
+//   private ranking. Readable by any signed-in user (you must know the code).
+// - rankings/{id} and all subcollections are readable only by MEMBERS or the OWNER.
 //   You join by creating your own member doc with a valid invite code.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,15 +16,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
     function isMember(rankingId) {
       return signedIn()
         && exists(/databases/$(database)/documents/rankings/$(rankingId)/members/$(request.auth.uid));
+    }
+
+    // Owner of the ranking (its creator). Uses a get() — fine for writes; for the
+    // rankings doc itself the read/query rules test resource.data.ownerId directly.
+    function isOwner(rankingId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/rankings/$(rankingId))
+        && get(/databases/$(database)/documents/rankings/$(rankingId)).data.ownerId == request.auth.uid;
     }
 
     // A join is valid when the supplied code maps to this ranking.
@@ -42,44 +46,46 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.role == 'player';
-      allow update: if signedIn() && (
-        isAdmin()
-        || (request.auth.uid == uid && request.resource.data.role == resource.data.role)
-      );
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid;
       allow delete: if false;
     }
 
-    // Code -> rankingId lookup. Knowing the code is the gate to read it.
+    // Code -> rankingId lookup. Knowing the code is the gate to read it. Anyone
+    // may create a code doc they author (createdBy); revoking (update/delete)
+    // requires owning the ranking it points at.
     match /inviteCodes/{code} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.rankingId);
     }
 
     match /rankings/{rankingId} {
-      allow read: if isMember(rankingId) || isAdmin();
-      allow create: if isAdmin() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      // Owner can read (and query, via where('ownerId','==',me)) their own ranking
+      // even before joining as a player; members read the ones they're in.
+      allow read: if isMember(rankingId) || (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
 
       match /members/{uid} {
         // Leaderboard (members of this ranking) + your own doc + missing-doc reads.
         // The collection-group "my rankings" query is authorized by the
         // recursive-wildcard rule above, not this one.
-        allow read: if signedIn() && (isAdmin() || isMember(rankingId) || resource == null || resource.data.uid == request.auth.uid);
+        allow read: if signedIn() && (isOwner(rankingId) || isMember(rankingId) || resource == null || resource.data.uid == request.auth.uid);
 
-        // Join: your own uid, clean stats, and either you're admin or you have a
-        // valid invite code for this ranking.
+        // Join: your own uid, clean stats, and either you own the ranking or you
+        // have a valid invite code for this ranking.
         allow create: if signedIn()
           && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.wins == 0
           && request.resource.data.losses == 0
           && request.resource.data.matchesPlayed == 0
-          && (isAdmin() || validInvite(rankingId, request.resource.data.viaCode));
+          && (isOwner(rankingId) || validInvite(rankingId, request.resource.data.viaCode));
 
-        // Trust-based rating updates when recording a match (members only).
-        allow update: if isMember(rankingId) || isAdmin();
-        allow delete: if isAdmin() || request.auth.uid == uid;
+        // Trust-based rating updates when approving a match (members / owner).
+        allow update: if isMember(rankingId) || isOwner(rankingId);
+        allow delete: if isOwner(rankingId) || request.auth.uid == uid;
       }
 
       // A match is created `pending` (touches no rating) and only its status may
@@ -87,33 +93,34 @@ service cloud.firestore {
       // which applies the Elo — or the approver/recorder rejects it. Ratings are
       // still trust-based (a member update elsewhere) until a Cloud Function.
       match /matches/{matchId} {
-        allow read: if isMember(rankingId) || isAdmin();
-        allow create: if (isMember(rankingId) || isAdmin()) && request.resource.data.status == 'pending';
-        allow update: if isAdmin() || (
+        allow read: if isMember(rankingId) || isOwner(rankingId);
+        allow create: if (isMember(rankingId) || isOwner(rankingId)) && request.resource.data.status == 'pending';
+        allow update: if isOwner(rankingId) || (
           resource.data.status == 'pending' && (
             (request.resource.data.status == 'approved' && request.auth.uid == resource.data.approverId)
             || (request.resource.data.status == 'rejected'
                 && (request.auth.uid == resource.data.approverId || request.auth.uid == resource.data.recordedBy))
           )
         );
-        allow delete: if isAdmin();
+        allow delete: if isOwner(rankingId);
       }
 
-      // Weekly draw. Admin opens/draws/closes; members confirm themselves.
+      // Weekly draw. Owner opens/draws/closes; members confirm themselves.
       match /rounds/{roundId} {
-        allow read: if isMember(rankingId) || isAdmin();
-        allow create, update, delete: if isAdmin();
+        allow read: if isMember(rankingId) || isOwner(rankingId);
+        allow create, update, delete: if isOwner(rankingId);
 
         match /participants/{uid} {
-          allow read: if isMember(rankingId) || isAdmin();
+          allow read: if isMember(rankingId) || isOwner(rankingId);
           allow create, delete: if signedIn() && request.auth.uid == uid && isMember(rankingId);
           allow update: if false;
         }
 
         match /fixtures/{fixtureId} {
-          allow read: if isMember(rankingId) || isAdmin();
-          allow create, delete: if isAdmin();
-          allow update: if isMember(rankingId) || isAdmin();
+          allow read: if isMember(rankingId) || isOwner(rankingId);
+          allow create, delete: if isOwner(rankingId);
+          // Members update fixtures (report a result; approving a match closes it).
+          allow update: if isMember(rankingId) || isOwner(rankingId);
         }
       }
     }

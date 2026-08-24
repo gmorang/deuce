@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, orderBy, query, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { collection, collectionGroup, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import { useAuth } from '../auth/AuthProvider'
-import { useIsAdmin } from '../auth/useIsAdmin'
 import { DEFAULT_MATCH_FORMAT, type MatchFormat } from '../matches/score'
 import { generateInviteCode } from './codes'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from './identity'
@@ -13,31 +12,32 @@ const inviteRef = (code: string) => doc(db, 'inviteCodes', code)
 
 /**
  * Rankings visible to the current user: the ones they belong to (found via a
- * collection-group query over their `members` docs), or *all* rankings for an
- * admin. Rankings are private, so there's no "list everything" for players.
+ * collection-group query over their `members` docs) plus the ones they own (a
+ * creator sees their ranking even before joining it as a player). Rankings are
+ * private, so there's no "list everything".
  */
 export function useMyRankings() {
   const { user } = useAuth()
-  const { data: isAdmin } = useIsAdmin()
   const uid = user?.uid
   return useQuery({
-    queryKey: ['my-rankings', uid, !!isAdmin],
-    enabled: !!uid && isAdmin !== undefined,
+    queryKey: ['my-rankings', uid],
+    enabled: !!uid,
     queryFn: async (): Promise<Ranking[]> => {
       if (!uid) return []
-      if (isAdmin) {
-        const snap = await getDocs(query(rankingsRef, orderBy('createdAt', 'desc')))
-        return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Ranking, 'id'>) }))
-      }
-      // Find every ranking I'm a member of via a collection-group query over the
-      // `members` docs (needs the members.uid collection-group index).
-      const memberSnap = await getDocs(query(collectionGroup(db, 'members'), where('uid', '==', uid)))
-      const ids = memberSnap.docs.map(d => d.ref.parent.parent?.id).filter((v): v is string => !!v)
-      const docs = await Promise.all(ids.map(id => getDoc(doc(db, 'rankings', id))))
-      return docs
-        .filter(s => s.exists())
-        .map(s => ({ id: s.id, ...(s.data() as Omit<Ranking, 'id'>) }))
-        .sort((a, b) => b.createdAt - a.createdAt)
+      // Memberships via collection-group over `members` (needs the members.uid
+      // collection-group index) + rankings I own directly.
+      const [memberSnap, ownedSnap] = await Promise.all([
+        getDocs(query(collectionGroup(db, 'members'), where('uid', '==', uid))),
+        getDocs(query(rankingsRef, where('ownerId', '==', uid))),
+      ])
+      const byId = new Map<string, Ranking>()
+      for (const d of ownedSnap.docs) byId.set(d.id, { id: d.id, ...(d.data() as Omit<Ranking, 'id'>) })
+
+      const memberIds = memberSnap.docs.map(d => d.ref.parent.parent?.id).filter((v): v is string => !!v && !byId.has(v))
+      const docs = await Promise.all(memberIds.map(id => getDoc(doc(db, 'rankings', id))))
+      for (const s of docs) if (s.exists()) byId.set(s.id, { id: s.id, ...(s.data() as Omit<Ranking, 'id'>) })
+
+      return [...byId.values()].sort((a, b) => b.createdAt - a.createdAt)
     },
   })
 }
@@ -65,7 +65,7 @@ export interface NewRankingInput {
   format?: MatchFormat
 }
 
-/** Create a private ranking with an invite code + its public lookup doc. Admin only. */
+/** Create a private ranking with an invite code + its public lookup doc. Owner only (rules enforce ownerId). */
 export function useCreateRanking() {
   const qc = useQueryClient()
   return useMutation({
@@ -101,7 +101,7 @@ export interface RankingUpdate {
   settings?: RankingSettings
 }
 
-/** Update a ranking's basic info, identity or Elo settings. Admin only (rules). */
+/** Update a ranking's basic info, identity or Elo settings. Owner only (rules enforce ownerId). */
 export function useUpdateRanking(rankingId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -113,7 +113,7 @@ export function useUpdateRanking(rankingId: string) {
   })
 }
 
-/** Generate a fresh invite code, revoking the old one. Admin only. */
+/** Generate a fresh invite code, revoking the old one. Owner only (rules enforce ownerId). */
 export function useRegenerateCode(rankingId: string) {
   const qc = useQueryClient()
   return useMutation({

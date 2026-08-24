@@ -1,7 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
-import { useIsAdmin } from '../features/auth/useIsAdmin'
-import { Badge } from './Badge'
 import { Logo } from './Logo'
 
 function Brand() {
@@ -21,7 +19,6 @@ const sideNav = ({ isActive }: { isActive: boolean }) =>
 /** Responsive chrome: sidebar on desktop, sticky top bar on mobile. */
 export function AppLayout() {
   const { user, logout } = useAuth()
-  const { data: isAdmin } = useIsAdmin()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -38,7 +35,7 @@ export function AppLayout() {
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{user?.displayName ?? 'Jogador'}</p>
-        <p className="text-xs text-fg-subtle">{isAdmin ? 'Admin' : 'Jogador'}</p>
+        {user?.email && <p className="truncate text-xs text-fg-subtle">{user.email}</p>}
       </div>
       <button
         type="button"
@@ -63,12 +60,10 @@ export function AppLayout() {
             <TrophyIcon />
             Rankings
           </NavLink>
-          {isAdmin && (
-            <NavLink to="/novo" className={sideNav}>
-              <PlusIcon />
-              Novo ranking
-            </NavLink>
-          )}
+          <NavLink to="/novo" className={sideNav}>
+            <PlusIcon />
+            Novo ranking
+          </NavLink>
         </nav>
         <div className="mt-auto border-t border-border pt-3">{userFooter}</div>
       </aside>
@@ -79,11 +74,6 @@ export function AppLayout() {
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2">
               <Brand />
-              {isAdmin && (
-                <Badge tone="accent" uppercase>
-                  admin
-                </Badge>
-              )}
             </div>
             <div className="flex items-center gap-2">
               {user?.photoURL ? (

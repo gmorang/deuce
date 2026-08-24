@@ -6,20 +6,20 @@ import { z } from 'zod'
 import { Button } from '../components/Button'
 import { IdentityPicker } from '../components/IdentityPicker'
 import { useAuth } from '../features/auth/AuthProvider'
-import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { MATCH_FORMATS, type MatchFormat } from '../features/matches/score'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from '../features/rankings/identity'
 import { DEFAULT_RANKING_SETTINGS, type Ranking } from '../features/rankings/types'
+import { useIsOwner } from '../features/rankings/useIsOwner'
 import { useDeleteRanking, useRanking, useRegenerateCode, useSetArchived, useUpdateRanking } from '../features/rankings/useRankings'
 
 export function RankingSettingsPage() {
   const { rankingId } = useParams()
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin()
   const { data: ranking, isLoading } = useRanking(rankingId)
+  const isOwner = useIsOwner(ranking)
 
-  if (adminLoading || isLoading) return null
-  if (!isAdmin) return <Navigate to={`/r/${rankingId}`} replace />
+  if (isLoading) return null
   if (!ranking) return <Navigate to="/rankings" replace />
+  if (!isOwner) return <Navigate to={`/r/${rankingId}`} replace />
 
   return <SettingsForm ranking={ranking} />
 }

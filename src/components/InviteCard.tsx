@@ -13,7 +13,7 @@ const copyToClipboard = (text: string) =>
 
 /** Invite block on the ranking page: share by code (typed on the home) or by
  * link (opening it drops the person straight into the ranking). */
-export function InviteCard({ ranking, isAdmin }: { ranking: Ranking; isAdmin: boolean }) {
+export function InviteCard({ ranking, canManage }: { ranking: Ranking; canManage: boolean }) {
   const { user } = useAuth()
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const regenerate = useRegenerateCode(ranking.id)
@@ -33,7 +33,7 @@ export function InviteCard({ ranking, isAdmin }: { ranking: Ranking; isAdmin: bo
   }
 
   if (!code) {
-    if (!isAdmin) return null
+    if (!canManage) return null
     return (
       <section className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow)]">
         <h2 className="font-medium">Convidar pessoas</h2>

@@ -5,10 +5,10 @@ import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { Scoreboard } from '../components/Scoreboard'
 import { useAuth } from '../features/auth/AuthProvider'
-import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { type MatchFormatDef, type SetScore, computeWinner, formatScore, matchFormat } from '../features/matches/score'
 import type { Match } from '../features/matches/types'
 import { useApproveMatch, usePendingMatches, useRejectMatch } from '../features/matches/useMatches'
+import { useIsOwner } from '../features/rankings/useIsOwner'
 import { useMembers } from '../features/rankings/useMembers'
 import { useRanking } from '../features/rankings/useRankings'
 import type { Fixture, Round } from '../features/rounds/types'
@@ -38,13 +38,14 @@ export function RoundPage() {
 
 function NoRound({ rankingId }: { rankingId?: string }) {
   const { user } = useAuth()
-  const { data: isAdmin } = useIsAdmin()
+  const { data: ranking } = useRanking(rankingId)
+  const isOwner = useIsOwner(ranking)
   const createRound = useCreateRound(rankingId ?? '')
 
   return (
     <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border px-4 py-10 text-center">
       <p className="text-sm text-fg-muted">Nenhuma rodada aberta.</p>
-      {isAdmin && (
+      {isOwner && (
         <Button disabled={createRound.isPending} onClick={() => user && createRound.mutate({ createdBy: user.uid })}>
           {createRound.isPending ? 'Abrindo…' : 'Abrir rodada'}
         </Button>
@@ -55,7 +56,8 @@ function NoRound({ rankingId }: { rankingId?: string }) {
 
 function RoundView({ rankingId, round }: { rankingId: string; round: Round }) {
   const { user } = useAuth()
-  const { data: isAdmin } = useIsAdmin()
+  const { data: ranking } = useRanking(rankingId)
+  const isOwner = useIsOwner(ranking)
   const { data: members } = useMembers(rankingId)
   const { data: participants } = useParticipants(rankingId, round.id)
   const { data: fixtures } = useFixtures(rankingId, round.id)
@@ -71,14 +73,14 @@ function RoundView({ rankingId, round }: { rankingId: string; round: Round }) {
       </div>
 
       {round.status === 'confirming' && (
-        <ConfirmingPanel rankingId={rankingId} roundId={round.id} isAdmin={!!isAdmin} member={myMember} participants={participants ?? []} />
+        <ConfirmingPanel rankingId={rankingId} roundId={round.id} isOwner={isOwner} member={myMember} participants={participants ?? []} />
       )}
 
       {(round.status === 'drawn' || round.status === 'closed') && (
-        <DrawnPanel rankingId={rankingId} round={round} isAdmin={!!isAdmin} fixtures={fixtures ?? []} myId={user?.uid} />
+        <DrawnPanel rankingId={rankingId} round={round} isOwner={isOwner} fixtures={fixtures ?? []} myId={user?.uid} />
       )}
 
-      {round.status === 'closed' && isAdmin && (
+      {round.status === 'closed' && isOwner && (
         <Button variant="outline" disabled={createRound.isPending} onClick={() => user && createRound.mutate({ createdBy: user.uid })}>
           {createRound.isPending ? 'Abrindo…' : 'Abrir próxima rodada'}
         </Button>
@@ -100,13 +102,13 @@ function StatusPill({ status }: { status: Round['status'] }) {
 function ConfirmingPanel({
   rankingId,
   roundId,
-  isAdmin,
+  isOwner,
   member,
   participants,
 }: {
   rankingId: string
   roundId: string
-  isAdmin: boolean
+  isOwner: boolean
   member?: { id: string; displayName: string }
   participants: { id: string; displayName: string }[]
 }) {
@@ -147,7 +149,7 @@ function ConfirmingPanel({
         )}
       </section>
 
-      {isAdmin && (
+      {isOwner && (
         <div className="flex flex-col gap-2">
           <Button
             disabled={draw.isPending || participants.length < 2}
@@ -169,13 +171,13 @@ function ConfirmingPanel({
 function DrawnPanel({
   rankingId,
   round,
-  isAdmin,
+  isOwner,
   fixtures,
   myId,
 }: {
   rankingId: string
   round: Round
-  isAdmin: boolean
+  isOwner: boolean
   fixtures: Fixture[]
   myId?: string
 }) {
@@ -210,7 +212,7 @@ function DrawnPanel({
         </p>
       )}
 
-      {isAdmin && !closed && (
+      {isOwner && !closed && (
         <Button variant="outline" disabled={closeRound.isPending} onClick={() => closeRound.mutate()}>
           {closeRound.isPending ? 'Encerrando…' : 'Encerrar rodada'}
         </Button>

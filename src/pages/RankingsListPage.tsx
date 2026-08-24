@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '../components/Badge'
 import { Button } from '../components/Button'
 import { RankingBadge } from '../components/RankingBadge'
-import { useIsAdmin } from '../features/auth/useIsAdmin'
+import { useAuth } from '../features/auth/AuthProvider'
 import { useJoinByCode } from '../features/rankings/useMembers'
 import { useMyRankings } from '../features/rankings/useRankings'
 
@@ -12,10 +12,11 @@ const inputClass =
 
 export function RankingsListPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { data: rankings, isLoading, isError } = useMyRankings()
-  const { data: isAdmin } = useIsAdmin()
 
-  const visible = rankings?.filter(r => isAdmin || !r.archived)
+  // Archived rankings stay visible to their owner (to unarchive/delete), hidden otherwise.
+  const visible = rankings?.filter(r => !r.archived || r.ownerId === user?.uid)
 
   return (
     <div className="flex flex-col gap-8">
@@ -25,21 +26,15 @@ export function RankingsListPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Rankings</h1>
             <p className="mt-1 text-sm text-fg-muted">Os rankings que você participa.</p>
           </div>
-          {isAdmin && (
-            <Button onClick={() => navigate('/novo')} className="shrink-0">
-              Novo ranking
-            </Button>
-          )}
+          <Button onClick={() => navigate('/novo')} className="shrink-0">
+            Novo ranking
+          </Button>
         </div>
 
         {isLoading && <SkeletonGrid />}
         {isError && <EmptyState>Não foi possível carregar os rankings.</EmptyState>}
         {visible && visible.length === 0 && (
-          <EmptyState>
-            {isAdmin
-              ? 'Nenhum ranking ainda. Crie o primeiro em “Novo ranking”. 🎾'
-              : 'Você ainda não participa de nenhum ranking. Entre com um código abaixo.'}
-          </EmptyState>
+          <EmptyState>Você ainda não está em nenhum ranking. Crie um em “Novo ranking” ou entre com um código. 🎾</EmptyState>
         )}
 
         {visible && visible.length > 0 && (

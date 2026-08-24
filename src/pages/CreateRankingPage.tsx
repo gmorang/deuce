@@ -1,12 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '../components/Button'
 import { IdentityPicker } from '../components/IdentityPicker'
 import { useAuth } from '../features/auth/AuthProvider'
-import { useIsAdmin } from '../features/auth/useIsAdmin'
 import { DEFAULT_MATCH_FORMAT, MATCH_FORMATS, type MatchFormat } from '../features/matches/score'
 import { DEFAULT_RANKING_COLOR, DEFAULT_RANKING_ICON } from '../features/rankings/identity'
 import { useCreateRanking } from '../features/rankings/useRankings'
@@ -20,10 +19,9 @@ type Form = z.infer<typeof schema>
 const inputClass =
   'w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-fg-subtle focus:border-accent focus:ring-2 focus:ring-[var(--ring)]'
 
-/** Admin-only screen for creating a ranking: name, description and identity. */
+/** Create a ranking (any signed-in user): name, description and identity. */
 export function CreateRankingPage() {
   const { user } = useAuth()
-  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin()
   const navigate = useNavigate()
   const createRanking = useCreateRanking()
 
@@ -50,9 +48,6 @@ export function CreateRankingPage() {
     })
     navigate(`/r/${id}`)
   })
-
-  if (adminLoading) return null
-  if (!isAdmin) return <Navigate to="/rankings" replace />
 
   return (
     <div className="flex flex-col gap-5">
